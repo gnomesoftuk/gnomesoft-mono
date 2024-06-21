@@ -3,6 +3,7 @@ IMAGE ?= myapp
 DOCKER_FILE ?= Dockerfile
 DOCKER_TAG ?= $(shell git log --format="%h" -n 1)
 DOCKER_PORT ?= 8080
+DOCKER_BUILD_ARGS ?= ''
 
 all:
 	$(MAKE) auth build push
@@ -14,7 +15,7 @@ _auth:
 	$(echo ${DOCKER_PASS} | docker login -u ${DOCKER_NAMESPACE} --password-stdin)
 
 _build:
-	docker build --tag ${DOCKER_NAMESPACE}/${IMAGE}:${DOCKER_TAG} ./${IMAGE} -f ${IMAGE}/${DOCKER_FILE}
+	docker build ${DOCKER_BUILD_ARGS} --tag ${DOCKER_NAMESPACE}/${IMAGE}:${DOCKER_TAG} ./${IMAGE} -f ${IMAGE}/${DOCKER_FILE}
 
 _test:
 	docker run --rm -d -p ${DOCKER_PORT}:${DOCKER_PORT} ${DOCKER_NAMESPACE}/${IMAGE}:${DOCKER_TAG}
