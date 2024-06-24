@@ -1,0 +1,42 @@
+# CircleCI configuration file
+# See: https://circleci.com/docs/configuration-reference
+version: 2.1
+
+workflows:
+  main:
+    jobs:
+      - release:
+          context:
+            - DockerHub
+          filters:
+            branches:
+              only:
+                - main
+  branch:
+    jobs:
+      - build:
+          filters:
+            branches:
+              ignore:
+                - main
+    
+jobs:
+  build:
+    machine:
+      image: default
+    resource_class: medium
+    steps:
+      - checkout
+
+      - run: |
+          make build test
+
+  release:
+    machine:
+      image: default
+    resource_class: medium
+    steps:
+      - checkout
+
+      - run: |
+          make all

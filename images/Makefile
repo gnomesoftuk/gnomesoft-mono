@@ -4,6 +4,9 @@ DOCKER_FILE ?= Dockerfile
 DOCKER_TAG ?= $(shell git log --format="%h" -n 1)
 DOCKER_PORT ?= 8080
 DOCKER_BUILD_ARGS ?= ''
+DOCKER_PASS ?= ''
+
+.PHONY: _auth _build _test _push all
 
 all:
 	$(MAKE) auth build push
@@ -12,7 +15,7 @@ with_test:
 	$(MAKE) auth build test push
 
 _auth:
-	$(echo ${DOCKER_PASS} | docker login -u ${DOCKER_NAMESPACE} --password-stdin)
+	echo ${DOCKER_PASS} | docker login -u ${DOCKER_NAMESPACE} --password-stdin > /dev/null
 
 _build:
 	docker build ${DOCKER_BUILD_ARGS} --tag ${DOCKER_NAMESPACE}/${IMAGE}:${DOCKER_TAG} ./${IMAGE} -f ${IMAGE}/${DOCKER_FILE}
@@ -24,6 +27,9 @@ _test:
 
 _push:
 	docker push ${DOCKER_NAMESPACE}/${IMAGE}:${DOCKER_TAG}
+	docker tag ${DOCKER_NAMESPACE}/${IMAGE}:${DOCKER_TAG} ${DOCKER_NAMESPACE}/${IMAGE}:latest
+	docker push ${DOCKER_NAMESPACE}/${IMAGE}:latest
+	echo "Do not use the latest tag in production !!"
 
 auth:
 	$(MAKE) _auth
@@ -36,3 +42,4 @@ test:
 
 push:
 	$(MAKE) _push
+

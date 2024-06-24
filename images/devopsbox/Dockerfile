@@ -1,6 +1,11 @@
 # Source and credit for the initial Dockerfile
 # https://dev.to/cloudskills/using-containers-for-ansible-development-2n9n
 
+# https://code.visualstudio.com/remote/advancedcontainers/add-nonroot-user
+ARG USERNAME=devops
+ARG USER_UID=1000
+ARG USER_GID=1000
+
 # Architecture component of TARGETPLATFORM. Eg. amd64, arm64
 # https://docs.docker.com/engine/reference/builder/#automatic-platform-args-in-the-global-scope
 ARG ARCH
@@ -50,6 +55,7 @@ ENV TFSEC_URL="https://github.com/aquasecurity/tfsec/releases/download/v${TFSEC_
 ENV KUSTOMIZE_URL="https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv${KUSTOMIZE_VERSION}/kustomize_v${KUSTOMIZE_VERSION}_linux_arm64.tar.gz"
 
 FROM ${ARCH} AS tools
+
 # Install tools
 RUN uname -m && \
 	    apt-get update -yq && \
@@ -70,9 +76,11 @@ RUN uname -m && \
 		python3-pip \
 		shellcheck \
 		skopeo \
+		sudo \
 		software-properties-common \
 		tar \
 		unzip \
+		vim \
 		zip && \
 # Add Hashicorp repository
 	curl -fsSL "https://apt.releases.hashicorp.com/gpg" | gpg --dearmor -o "${KEYRINGS_PATH}/releases-hashicorp.gpg" && \
@@ -176,6 +184,14 @@ RUN uname -m && \
 	terraform-docs --version   && \
 	tflint --version           && \
 	tfsec --version            && \
+	sudo -V					   && \
 	unzip -v                   && \
 	vault --version            && \
-	zip -v
+	zip -v					   && \
+	# Create user for access
+	groupadd --gid ${USER_GID} ${USERNAME} && \
+    useradd --uid ${USER_UID} --gid ${USER_GID} -m ${USERNAME} && \
+    echo ${USERNAME} ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/${USERNAME} && \
+    chmod 0440 /etc/sudoers.d/${USERNAME}
+
+USER $USERNAME
