@@ -2,20 +2,19 @@
 # https://dev.to/cloudskills/using-containers-for-ansible-development-2n9n
 
 # https://code.visualstudio.com/remote/advancedcontainers/add-nonroot-user
-ARG USERNAME=devops
-ARG USER_UID=1000
-ARG USER_GID=1000
 
-# Architecture component of TARGETPLATFORM. Eg. amd64, arm64
+
+# Architecture ARCH. Eg. amd64, arm64
 # https://docs.docker.com/engine/reference/builder/#automatic-platform-args-in-the-global-scope
-ARG ARCH
+ARG ARCH=amd64
 
 # See supported Ubuntu version of HashiCorp:
 # https://www.hashicorp.com/official-packaging-guide?product_intent=terraform
 
-# The ubuntu:noble tag points to the 24.04 release
 # https://releases.ubuntu.com/noble/
 FROM docker.io/library/ubuntu:noble AS base
+
+
 
 # https://github.com/terraform-docs/terraform-docs/releases
 ENV TFDOC_VERSION="0.18.0"
@@ -55,6 +54,11 @@ ENV TFSEC_URL="https://github.com/aquasecurity/tfsec/releases/download/v${TFSEC_
 ENV KUSTOMIZE_URL="https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv${KUSTOMIZE_VERSION}/kustomize_v${KUSTOMIZE_VERSION}_linux_arm64.tar.gz"
 
 FROM ${ARCH} AS tools
+
+# These args need to be defined in the stage that uses them
+ARG USERNAME=devops
+ARG USER_UID=1001
+ARG USER_GID=1001
 
 # Install tools
 RUN uname -m && \
@@ -189,9 +193,9 @@ RUN uname -m && \
 	vault --version            && \
 	zip -v					   && \
 	# Create user for access
-	groupadd --gid ${USER_GID} ${USERNAME} && \
-    useradd --uid ${USER_UID} --gid ${USER_GID} -m ${USERNAME} && \
-    echo ${USERNAME} ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/${USERNAME} && \
-    chmod 0440 /etc/sudoers.d/${USERNAME}
+	groupadd --gid "${USER_GID}" "${USERNAME}" && \
+    useradd --uid "${USER_UID}" --gid "${USER_GID}" --shell "/bin/bash" -m "${USERNAME}" && \
+    echo "${USERNAME}" ALL=\(root\) NOPASSWD:ALL > "/etc/sudoers.d/${USERNAME}" && \
+    chmod 0440 "/etc/sudoers.d/${USERNAME}"
 
 USER $USERNAME

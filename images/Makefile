@@ -3,7 +3,7 @@ IMAGE ?= myapp
 DOCKER_FILE ?= Dockerfile
 DOCKER_TAG ?= $(shell git log --format="%h" -n 1)
 DOCKER_PORT ?= 8080
-DOCKER_BUILD_ARGS ?= ''
+DOCKER_BUILD_ARGS ?= '--build-arg="ARCH=amd64"'
 DOCKER_PASS ?= ''
 
 .PHONY: _auth _build _test _push all

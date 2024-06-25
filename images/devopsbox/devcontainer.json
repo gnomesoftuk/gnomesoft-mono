@@ -1,0 +1,48 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/ubuntu
+{
+	"name": "DevOpsBox",
+	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
+	"image": "gnomesoft/devopsbox:latest",
+
+	// Features to add to the dev container. More info: https://containers.dev/features.
+	// "features": {},
+
+	// Use 'forwardPorts' to make a list of ports inside the container available locally.
+	// "forwardPorts": [],
+
+	// Use 'postCreateCommand' to run commands after the container is created.
+	// "postCreateCommand": "uname -a",
+
+	// set workspace file permissions
+	"postCreateCommand": "sudo chown -R devops:devops /home/devops/workspace",
+
+	// Configure tool-specific properties.
+	// "customizations": {},
+
+	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
+	"remoteUser": "devops",
+	"containerUser": "devops",
+	// configure mounts to persist VSCode profile
+	"mounts": [
+        "source=profile,target=/root,type=volume",
+        "target=/root/.vscode-server,type=volume"
+    ],
+	// configure workspace mount into user home
+	"workspaceMount": "source=${localWorkspaceFolder},target=/home/devops/workspace,type=bind",
+	"workspaceFolder": "/home/devops/workspace",
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"redhat.ansible",
+				"amazonwebservices.aws-toolkit-vscode",
+				"redhat.vscode-yaml",
+				"ms-vscode.makefile-tools",
+				"amazonwebservices.amazon-q-vscode",
+				"ms-azuretools.vscode-docker",
+				"golang.go",
+				"hashicorp.terraform"
+			]
+		}
+	}
+}
