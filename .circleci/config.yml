@@ -1,0 +1,22 @@
+# CircleCI configuration file
+# See: https://circleci.com/docs/configuration-reference
+#
+# This handles all workflows from the setup job and delegates
+# to the correct one based on which files have changed
+# https://support.circleci.com/hc/en-us/articles/10269416203163--Advanced-path-filtering
+version: 2.1
+
+setup: true
+
+orbs:
+  path-filtering: circleci/path-filtering@0.0.2
+
+workflows:
+  setup-workflow:
+    jobs:
+      - path-filtering/filter:
+          base-revision: main
+          config-path: ../images/.circleci/config.yml
+          mapping: |
+            images/.* images true
+
