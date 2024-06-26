@@ -151,6 +151,8 @@ RUN uname -m && \
 	chmod +x "opa"                      && \
 	mv "opa" "/usr/bin/opa"             && \
     echo "Open Policy Agent installed"  && \
+# Install pip packages
+	python3 -m pip install ansible-lint && \
 # Delete caches
 	apt-get clean               && \
 	rm -rf /var/lib/apt/lists/* && \
@@ -164,6 +166,7 @@ RUN uname -m && \
 # Basic smoke test
 	ansible --version          && \
 	ansible-playbook --version && \
+	ansible-lint --version 	   && \
 	aws --version              && \
 	bash --version             && \
 	curl --version             && \
