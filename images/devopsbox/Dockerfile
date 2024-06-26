@@ -72,6 +72,8 @@ RUN uname -m && \
 		dnsutils \
 		figlet \
 		git \
+		# TODO: Replace this with https://github.com/kerolloz/go-installer/blob/master/go.sh
+		# As the ubuntu repos are a bit out of date
 		golang-go \
         gnupg \
 		gpg \
