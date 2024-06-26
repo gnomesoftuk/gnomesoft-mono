@@ -26,6 +26,8 @@ ENV TFLINT_VERSION="0.51.1"
 ENV KUBECTL_VERSION="1.30"
 # https://github.com/kubernetes-sigs/kustomize
 ENV KUSTOMIZE_VERSION="5.4.2"
+# https://go.dev/dl/
+ENV GO_VERSION="1.22.4"
 
 # Default to UTF-8 file.encoding
 ENV LANG="C.UTF-8"
@@ -34,6 +36,8 @@ ENV DEBIAN_FRONTEND="noninteractive"
 # OS Paths
 ENV KEYRINGS_PATH="/etc/apt/keyrings"
 ENV APT_SOURCES_PATH="/etc/apt/sources.list.d"
+# Curl config
+ENV CURL_RETRIES="--retry 5"
 
 FROM base AS amd64
 # Download URLs for AMD64 (X86/64)
@@ -60,6 +64,8 @@ ARG USERNAME=devops
 ARG USER_UID=1001
 ARG USER_GID=1001
 
+COPY go-install.sh .
+
 # Install tools
 RUN uname -m && \
 	    apt-get update -yq && \
@@ -72,9 +78,6 @@ RUN uname -m && \
 		dnsutils \
 		figlet \
 		git \
-		# TODO: Replace this with https://github.com/kerolloz/go-installer/blob/master/go.sh
-		# As the ubuntu repos are a bit out of date
-		golang-go \
         gnupg \
 		gpg \
 		jq \
@@ -114,25 +117,25 @@ RUN uname -m && \
 	setcap -r "/usr/bin/vault" && \
 # AWS CLI (https://github.com/aws/aws-cli)
 	echo "AWS CLI URL: '$AWS_CLI_URL'"                        && \
-	curl -fsSL "$AWS_CLI_URL" -o "awscliv2.zip"               && \
+	curl -fsSL ${CURL_RETRIES} "$AWS_CLI_URL" -o "awscliv2.zip"               && \
 	unzip -qq "awscliv2.zip"                                  && \
 	./aws/install -b "/usr/local/bin" -i "/usr/local/aws-cli" && \
 	rm -rf aws*                                               && \
     echo "AWS CLI installed"                                  && \
 # terraform-docs (https://github.com/terraform-docs/terraform-docs)
-	curl -fsSL "$TFDOC_URL" -o "terraform-docs.tar.gz"  && \
+	curl -fsSL ${CURL_RETRIES} "$TFDOC_URL" -o "terraform-docs.tar.gz"  && \
 	tar -xf "terraform-docs.tar.gz" "terraform-docs"    && \
 	mv "terraform-docs" "/usr/bin/terraform-docs"       && \
 	rm "terraform-docs.tar.gz"                          && \
     echo "Terraform Docs installed"                     && \
 # tfsec (https://github.com/aquasecurity/tfsec)
-	curl -fsSL "$TFSEC_URL" -o "tfsec.tar.gz"   && \
+	curl -fsSL ${CURL_RETRIES} "$TFSEC_URL" -o "tfsec.tar.gz"   && \
 	tar -xf "tfsec.tar.gz" "tfsec"              && \
 	mv "tfsec" "/usr/bin/tfsec"                 && \
 	rm "tfsec.tar.gz"                           && \
     echo "Terraform Sec installed"              && \
 # tflint (https://github.com/terraform-linters/tflint)
-	curl -fsSL "$TFLINT_URL" -o "tflint.zip" && \
+	curl -fsSL ${CURL_RETRIES} "$TFLINT_URL" -o "tflint.zip" && \
 	unzip -qq "tflint.zip"                   && \
 	chmod +x "tflint"                        && \
 	mv "tflint" "/usr/bin/tflint"            && \
@@ -140,19 +143,23 @@ RUN uname -m && \
     echo "Terraform Lint installed"           && \
 # kustomize (https://github.com/kubernetes-sigs/kustomize)
     echo "KUSTOMIZE URL: '$KUSTOMIZE_URL'"              && \
-    curl -fsSL "$KUSTOMIZE_URL" -o "kustomize.tar.gz"  && \
+    curl -fsSL ${CURL_RETRIES} "$KUSTOMIZE_URL" -o "kustomize.tar.gz"  && \
     tar -xf "kustomize.tar.gz" "kustomize"              && \
     chmod +x "kustomize"                                && \
     mv "kustomize" "/usr/bin/kustomize"                 && \
     rm "kustomize.tar.gz"                                  && \
     echo "Kustomize installed"                          && \
 # Open Policy Agent (https://www.openpolicyagent.org/)
-	curl -fsSL "$OPA_URL" -o "opa"      && \
+	curl -fsSL ${CURL_RETRIES} "$OPA_URL" -o "opa"      && \
 	chmod +x "opa"                      && \
 	mv "opa" "/usr/bin/opa"             && \
     echo "Open Policy Agent installed"  && \
+# Go Lang
+	sh go-install.sh ${GO_VERSION}		&& \
+# Disable Python virtual environments warning
+rm "/usr/lib/python3.12/EXTERNALLY-MANAGED" && \
 # Install pip packages
-	python3 -m pip install ansible-lint && \
+	pip3 install ansible-dev-tools && \	
 # Delete caches
 	apt-get clean               && \
 	rm -rf /var/lib/apt/lists/* && \
@@ -161,8 +168,6 @@ RUN uname -m && \
 	go clean -modcache          && \
 	go clean -testcache         && \
 	go clean -fuzzcache         && \
-# Disable Python virtual environments warning
-	rm "/usr/lib/python3.12/EXTERNALLY-MANAGED" && \
 # Basic smoke test
 	ansible --version          && \
 	ansible-playbook --version && \
