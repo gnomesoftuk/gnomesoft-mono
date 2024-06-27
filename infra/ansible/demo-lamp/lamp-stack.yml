@@ -1,0 +1,115 @@
+---
+- name: Deploy lamp stack application
+  hosts: all
+  become: true
+  tasks:
+    - name: Install common dependencies
+      yum:
+        name:
+          - libselinux-python
+          - libsemanage-python
+          - firewalld
+        state: installed
+
+- name: Deploy lamp stack database
+  hosts: lamp-db
+  become: true
+  tasks:
+    - name: Install packages
+      yum:
+        name:
+          - mariadb-server
+          - MySQL-python
+
+    - name: Copy MySql config
+      copy:
+        src: files/my.cnf
+        dest: /etc/my.cnf
+
+    - name: Start / enable services
+      service:
+        name: "{{ item }}"
+        state: started
+        enabled: true
+      with_items:
+        - mariadb
+        - firewalld
+
+    - name: Configure firewall rules
+      firewalld:
+        port: "{{ mysql_port }}/tcp"
+        permanent: true
+        immediate: true
+        state: enabled
+
+    - name: Create application database
+      mysql_db:
+        name: "{{ dbname }}"
+        state: present
+
+    - name: Create application db user
+      mysql_user:
+        name: "{{ dbuser }}"
+        password: "{{ dbpassword }}"
+
+    - name: Copy db load scripts
+      copy:
+        src: files/db-load-script.sql
+        dest: /tmp/db-load-script.sql
+
+    - name: Load inventory data
+      shell: mysql -f < /tmp/db-load-script.sql
+
+- name: Deploy lamp stack application
+  hosts: lampweb
+  become: yes
+  tasks:
+    - name: Install httpd and php
+      yum:
+        name:
+          - httpd
+          - php
+          - php-mysql
+        state: present
+
+    - name: Install web role dependencies
+      yum:
+        name: git
+        state: installed
+
+    - name: Start firewalld
+      service:
+        name: firewalld
+        state: started
+        enabled: yes
+
+    - name: insert firewalld rule for httpd
+      firewalld:
+        port: "{{ httpd_port }}/tcp"
+        permanent: true
+        immediate: true
+        state: enabled
+
+    - name: Set index.php as the default packages
+      replace:
+        path: /etc/httpd/conf/httpd.conf
+        regexp: 'DirectoryIndex index.html'
+        replace: 'DirectoryIndex index.php'
+
+    - name: "Start httpd service"
+      service:
+        name: httpd
+        state: started
+        enabled: true
+
+    - name: Copy the application code from repo
+      git:
+        repo: "{{ repository }}"
+        dest: /var/www/html/
+        force: yes
+
+    - name: Create index.php
+      copy:
+        src: files/index.php
+        dest: /var/www/html/index.php
+
