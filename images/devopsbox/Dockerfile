@@ -27,7 +27,7 @@ ENV KUBECTL_VERSION="1.30"
 # https://github.com/kubernetes-sigs/kustomize
 ENV KUSTOMIZE_VERSION="5.4.2"
 # https://go.dev/dl/
-ENV GO_VERSION="1.22.4"
+ENV GOLANG_VERSION="1.22.4"
 
 # Default to UTF-8 file.encoding
 ENV LANG="C.UTF-8"
@@ -39,9 +39,14 @@ ENV APT_SOURCES_PATH="/etc/apt/sources.list.d"
 # Curl config
 ENV CURL_RETRIES="--retry 5"
 
+# Because some of the package installs require reloading the shell to fetch the new PATH
+# we reference the path here - so that our tests at the bottom can find our packages
+ENV PATH="$PATH:/usr/local/go/bin:/home/devops/.local/bin"
+
 FROM base AS amd64
 # Download URLs for AMD64 (X86/64)
 ENV AWS_CLI_URL="https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip"
+ENV GOLANG_URL="https://go.dev/dl/go${GOLANG_VERSION}.linux-amd64.tar.gz"
 ENV OPA_URL="https://github.com/open-policy-agent/opa/releases/latest/download/opa_linux_amd64_static"
 ENV TFDOC_URL="https://github.com/terraform-docs/terraform-docs/releases/download/v${TFDOC_VERSION}/terraform-docs-v${TFDOC_VERSION}-linux-amd64.tar.gz"
 ENV TFLINT_URL="https://github.com/terraform-linters/tflint/releases/download/v${TFLINT_VERSION}/tflint_linux_amd64.zip"
@@ -51,6 +56,7 @@ ENV KUSTOMIZE_URL="https://github.com/kubernetes-sigs/kustomize/releases/downloa
 FROM base AS arm64
 # Download URLs for ARM64
 ENV AWS_CLI_URL="https://awscli.amazonaws.com/awscli-exe-linux-aarch64.zip"
+ENV GOLANG_URL="https://go.dev/dl/go${GOLANG_VERSION}.darwin-arm64.tar.gz"
 ENV OPA_URL="https://github.com/open-policy-agent/opa/releases/latest/download/opa_linux_arm64_static"
 ENV TFDOC_URL="https://github.com/terraform-docs/terraform-docs/releases/download/v${TFDOC_VERSION}/terraform-docs-v${TFDOC_VERSION}-linux-arm64.tar.gz"
 ENV TFLINT_URL="https://github.com/terraform-linters/tflint/releases/download/v${TFLINT_VERSION}/tflint_linux_arm64.zip"
@@ -64,13 +70,12 @@ ARG USERNAME=devops
 ARG USER_UID=1001
 ARG USER_GID=1001
 
-COPY go-install.sh .
-
 # Install tools
 RUN uname -m && \
 	    apt-get update -yq && \
 	    apt-get install -yqq \
 		apt-transport-https \
+		iproute2 \
 		apt-utils \
 		build-essential \
 		ca-certificates \
@@ -83,6 +88,7 @@ RUN uname -m && \
 		jq \
 		lsb-release \
 		python3-pip \
+		pipx \
 		shellcheck \
 		skopeo \
 		sudo \
@@ -91,11 +97,11 @@ RUN uname -m && \
 		unzip \
 		vim \
 		zip && \
+# Configure pipx (for isolated python tool environments)
+	pipx ensurepath	&& \
 # Add Hashicorp repository
 	curl -fsSL "https://apt.releases.hashicorp.com/gpg" | gpg --dearmor -o "${KEYRINGS_PATH}/releases-hashicorp.gpg" && \
 	echo "deb [signed-by=${KEYRINGS_PATH}/releases-hashicorp.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | tee -a "${APT_SOURCES_PATH}/releases-hashicorp.list" && \
-# Add Ansible PPA repository
-	add-apt-repository "ppa:ansible/ansible" && \
 # Add Helm repository
 	curl -fsSL "https://baltocdn.com/helm/signing.asc" | gpg --dearmor -o "${KEYRINGS_PATH}/baltocdn-helm.gpg" && \
 	echo "deb [signed-by=${KEYRINGS_PATH}/baltocdn-helm.gpg] https://baltocdn.com/helm/stable/debian/ all main" | tee -a "${APT_SOURCES_PATH}/helm-stable-debian.list" && \
@@ -109,19 +115,27 @@ RUN uname -m && \
 		packer \
 		vault \
 		sentinel \
-		ansible \
 		kubectl \
 		helm && \
 # Fix "vault: Operation not permitted" error
 # https://github.com/hashicorp/vault/issues/10924
 	setcap -r "/usr/bin/vault" && \
 # AWS CLI (https://github.com/aws/aws-cli)
-	echo "AWS CLI URL: '$AWS_CLI_URL'"                        && \
-	curl -fsSL ${CURL_RETRIES} "$AWS_CLI_URL" -o "awscliv2.zip"               && \
-	unzip -qq "awscliv2.zip"                                  && \
-	./aws/install -b "/usr/local/bin" -i "/usr/local/aws-cli" && \
-	rm -rf aws*                                               && \
-    echo "AWS CLI installed"                                  && \
+	echo "AWS CLI URL: '$AWS_CLI_URL'"                        	&& \
+	curl -fsSL ${CURL_RETRIES} "$AWS_CLI_URL" -o "awscliv2.zip" && \
+	unzip -qq "awscliv2.zip"                                  	&& \
+	./aws/install -b "/usr/local/bin" -i "/usr/local/aws-cli" 	&& \
+	rm -rf aws*                                               	&& \
+    echo "AWS CLI installed"                                  	&& \
+	# Go Lang
+	echo "GO URL: '$GOLANG_URL'"              					&& \
+	curl -fsSL ${CURL_RETRIES} "$GOLANG_URL" -o "golang.tar.gz" && \
+	tar -xf "golang.tar.gz" "go"              				&& \
+	mv "go" "/usr/local/go"                 				&& \
+	echo 'export PATH=\$PATH:/usr/local/go/bin' > /etc/profile.d/02-go-path.sh && \
+	export PATH=$PATH:/usr/local/go/bin							&& \
+	rm "golang.tar.gz"                                  		&& \
+	echo "GoLang installed"                          			&& \
 # terraform-docs (https://github.com/terraform-docs/terraform-docs)
 	curl -fsSL ${CURL_RETRIES} "$TFDOC_URL" -o "terraform-docs.tar.gz"  && \
 	tar -xf "terraform-docs.tar.gz" "terraform-docs"    && \
@@ -154,24 +168,16 @@ RUN uname -m && \
 	chmod +x "opa"                      && \
 	mv "opa" "/usr/bin/opa"             && \
     echo "Open Policy Agent installed"  && \
-# Go Lang
-	sh go-install.sh ${GO_VERSION}		&& \
 # Disable Python virtual environments warning
-rm "/usr/lib/python3.12/EXTERNALLY-MANAGED" && \
-# Install pip packages
-	pip3 install ansible-dev-tools && \	
+	rm "/usr/lib/python3.12/EXTERNALLY-MANAGED" && \
 # Delete caches
 	apt-get clean               && \
 	rm -rf /var/lib/apt/lists/* && \
-	pip3 cache purge            && \
 	go clean -cache             && \
 	go clean -modcache          && \
 	go clean -testcache         && \
 	go clean -fuzzcache         && \
 # Basic smoke test
-	ansible --version          && \
-	ansible-playbook --version && \
-	ansible-lint --version 	   && \
 	aws --version              && \
 	bash --version             && \
 	curl --version             && \
@@ -180,8 +186,8 @@ rm "/usr/lib/python3.12/EXTERNALLY-MANAGED" && \
 	git --version              && \
 	go version                 && \
 	helm version               && \
-    kubectl version --client   && \
-    kustomize version          && \
+	kubectl version --client   && \
+	kustomize version          && \
 	lsb_release -a             && \
 	opa version                && \
 	openssl version            && \
@@ -209,3 +215,13 @@ rm "/usr/lib/python3.12/EXTERNALLY-MANAGED" && \
     chmod 0440 "/etc/sudoers.d/${USERNAME}"
 
 USER $USERNAME
+
+# Install pip packages
+RUN pipx install ansible-dev-tools \
+	ansible-core \
+	ansible-lint && \
+	pip3 cache purge            && \
+	# smoke test pip installed tools
+	ansible --version          && \
+	ansible-playbook --version && \
+	ansible-lint --version
