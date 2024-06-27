@@ -2,6 +2,7 @@
 - name: Deploy lamp stack application
   hosts: all
   become: true
+  gather_facts: false
   tasks:
     - name: Install common dependencies
       yum:
@@ -14,16 +15,18 @@
 - name: Deploy lamp stack database
   hosts: lamp-db
   become: true
+  gather_facts: false
   tasks:
     - name: Install packages
       yum:
         name:
           - mariadb-server
           - MySQL-python
+        state: installed
 
     - name: Copy MySql config
-      copy:
-        src: files/my.cnf
+      template:
+        src: templates/my.cnf.j2
         dest: /etc/my.cnf
 
     - name: Start / enable services
@@ -51,10 +54,13 @@
       mysql_user:
         name: "{{ dbuser }}"
         password: "{{ dbpassword }}"
+        host: "{{ ansible_host }}"
+        priv: "*.*:ALL"
+        state: present
 
     - name: Copy db load scripts
-      copy:
-        src: files/db-load-script.sql
+      template:
+        src: templates/db-load-script.sql.j2
         dest: /tmp/db-load-script.sql
 
     - name: Load inventory data
@@ -63,6 +69,7 @@
 - name: Deploy lamp stack application
   hosts: lampweb
   become: yes
+  gather_facts: false
   tasks:
     - name: Install httpd and php
       yum:
@@ -109,7 +116,7 @@
         force: yes
 
     - name: Create index.php
-      copy:
-        src: files/index.php
+      template:
+        src: templates/index.php.j2
         dest: /var/www/html/index.php
 
