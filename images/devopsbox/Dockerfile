@@ -1,8 +1,6 @@
 # Source and credit for the initial Dockerfile
 # https://dev.to/cloudskills/using-containers-for-ansible-development-2n9n
 
-# https://code.visualstudio.com/remote/advancedcontainers/add-nonroot-user
-
 
 # Architecture ARCH. Eg. amd64, arm64
 # https://docs.docker.com/engine/reference/builder/#automatic-platform-args-in-the-global-scope
@@ -13,8 +11,6 @@ ARG ARCH=amd64
 
 # https://releases.ubuntu.com/noble/
 FROM docker.io/library/ubuntu:noble AS base
-
-
 
 # https://github.com/terraform-docs/terraform-docs/releases
 ENV TFDOC_VERSION="0.18.0"
@@ -72,31 +68,31 @@ ARG USER_GID=1001
 
 # Install tools
 RUN uname -m && \
-	    apt-get update -yq && \
-	    apt-get install -yqq \
-		apt-transport-https \
-		iproute2 \
-		apt-utils \
-		build-essential \
-		ca-certificates \
-		curl \
-		dnsutils \
-		figlet \
-		git \
-        gnupg \
-		gpg \
-		jq \
-		lsb-release \
-		python3-pip \
-		pipx \
-		shellcheck \
-		skopeo \
-		sudo \
-		software-properties-common \
-		tar \
-		unzip \
-		vim \
-		zip && \
+	apt-get update -yq && \
+	apt-get install -yqq \
+	apt-transport-https \
+	iproute2 \
+	apt-utils \
+	build-essential \
+	ca-certificates \
+	curl \
+	dnsutils \
+	figlet \
+	git \
+	gnupg \
+	gpg \
+	jq \
+	lsb-release \
+	python3-pip \
+	pipx \
+	shellcheck \
+	skopeo \
+	sudo \
+	software-properties-common \
+	tar \
+	unzip \
+	vim \
+	zip && \
 # Configure pipx (for isolated python tool environments)
 	pipx ensurepath	&& \
 # Add Hashicorp repository
@@ -214,6 +210,7 @@ RUN uname -m && \
     echo "${USERNAME}" ALL=\(root\) NOPASSWD:ALL > "/etc/sudoers.d/${USERNAME}" && \
     chmod 0440 "/etc/sudoers.d/${USERNAME}"
 
+# https://code.visualstudio.com/remote/advancedcontainers/add-nonroot-user
 USER $USERNAME
 
 # Install pip packages
