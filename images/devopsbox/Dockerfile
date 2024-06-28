@@ -79,6 +79,7 @@ RUN uname -m && \
 	dnsutils \
 	figlet \
 	git \
+	gh \
 	gnupg \
 	gpg \
 	jq \
