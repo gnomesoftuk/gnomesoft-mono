@@ -1,5 +1,4 @@
 # requirements.yml
 collections:
   - name: community.mysql
-roles:
-  - name: firewalld
+  - name: ansible.posix

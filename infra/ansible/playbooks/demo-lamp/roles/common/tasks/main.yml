@@ -1,3 +1,5 @@
+---
+# tasks file for roles/firewalld
 - name: Install common dependencies
   yum:
     name:

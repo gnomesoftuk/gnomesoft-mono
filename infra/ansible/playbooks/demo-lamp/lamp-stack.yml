@@ -1,22 +1,22 @@
 ---
-- name: Deploy lamp stack application
+- name: Deploy firewall
   hosts: all
   become: true
   gather_facts: false
-  tasks:
-    - include_tasks: tasks/common.yml
+  roles:
+    - common
 
 - name: Deploy lamp stack database
   hosts: lamp-db
   become: true
   gather_facts: false
-  tasks:
-    - include_tasks: tasks/db.yml
+  roles:
+    - mysql
 
 - name: Deploy lamp stack application
   hosts: lampweb
   become: yes
   gather_facts: false
-  tasks:
-    - include_tasks: tasks/web.yml
+  roles:
+    - httpd-php
 
