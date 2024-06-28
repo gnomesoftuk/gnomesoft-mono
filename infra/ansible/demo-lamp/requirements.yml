@@ -1,0 +1,5 @@
+# requirements.yml
+collections:
+  - name: community.mysql
+roles:
+  - name: firewalld
