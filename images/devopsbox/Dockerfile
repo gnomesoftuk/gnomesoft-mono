@@ -82,6 +82,7 @@ RUN uname -m && \
 	gh \
 	gnupg \
 	gpg \
+	graphviz \
 	jq \
 	lsb-release \
 	python3-pip \
