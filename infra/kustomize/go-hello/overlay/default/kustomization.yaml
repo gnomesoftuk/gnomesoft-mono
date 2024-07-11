@@ -5,6 +5,6 @@ resources:
 
 # rewrite and check this in to update images
 images:
-- digest: sha256:xxxxxxxxxxxxxxxxx
+- digest: sha256:d0b832f4e1dcf03a52d8aaf973c3bd77d1ac32bf
   name: gnomesoft/go-hello
   newName: gnomesoft/go-hello
