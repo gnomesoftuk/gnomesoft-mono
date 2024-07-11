@@ -1,0 +1,10 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- ../../base
+
+# rewrite and check this in to update images
+images:
+- digest: sha256:xxxxxxxxxxxxxxxxx
+  name: gnomesoft/go-hello
+  newName: gnomesoft/go-hello
