@@ -5,8 +5,19 @@
 	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
 	"image": "gnomesoft/devopsbox:latest",
 
-	// Features to add to the dev container. More info: https://containers.dev/features.
-	// "features": {},
+	/* 
+	Features to add to the dev container. More info: https://containers.dev/features.
+
+	docker-in-docker - added as a feature as it requires a bind-mount and couples the container
+	to the local host as a result
+	*/
+	"features": {
+		"ghcr.io/devcontainers/features/docker-in-docker:2": {
+			"version": "latest",
+			"enableNonRootDocker": "true",
+			"moby": "true"
+		}
+	},
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	// "forwardPorts": [],
@@ -23,10 +34,16 @@
 	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
 	"remoteUser": "devops",
 	"containerUser": "devops",
-	// configure mounts to persist VSCode profile
+	/*
+	 	Configure mounts to persist VSCode profile
+
+		We retain vscode profile and extensions
+		We also retain our docker-in-docker volumes
+	 */
 	"mounts": [
         "source=profile,target=/root,type=volume",
-        "target=/root/.vscode-server,type=volume"
+        "target=/root/.vscode-server,type=volume",
+		"source=dind-var-lib-docker,target=/var/lib/docker,type=volume"
     ],
 	// configure workspace mount into user home
 	"workspaceMount": "source=${localWorkspaceFolder},target=/home/devops/workspace,type=bind",
