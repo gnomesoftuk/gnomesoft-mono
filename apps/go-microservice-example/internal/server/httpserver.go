@@ -27,5 +27,5 @@ func (m *HttpServer) InitHttpServer() {
 		c.String(http.StatusOK, "OK")
 	})
 
-	m.router.Run(":5000")
+	m.router.Run(":8080")
 }
