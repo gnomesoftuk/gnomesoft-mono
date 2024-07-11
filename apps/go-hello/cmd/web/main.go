@@ -1,7 +1,7 @@
 package main
 
 import (
-	"gnomesoftuk/gomicroservice/internal/server"
+	"gnomesoftuk/gohello/internal/server"
 )
 
 func main() {

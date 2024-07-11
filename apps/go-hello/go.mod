@@ -1,4 +1,4 @@
-module gnomesoftuk/gomicroservice
+module gnomesoftuk/gohello
 
 go 1.22.4
 

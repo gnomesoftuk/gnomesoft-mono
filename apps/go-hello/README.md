@@ -1,4 +1,4 @@
-# go-microservice
+# go-hello
 
 A very simple microservice to demonstrate how to run go applications in a container
 and deploy them.
@@ -6,7 +6,7 @@ and deploy them.
 ## Development
 
 To build the container run:
-`docker buildx build -t <org>/go-microservice .`
+`docker buildx build -t <org>/go-hello .`
 
 ## Architecture
 
