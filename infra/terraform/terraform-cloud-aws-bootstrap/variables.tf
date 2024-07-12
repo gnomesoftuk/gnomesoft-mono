@@ -14,11 +14,11 @@ variable "vcs" {
 }
 
 variable "workspaces" {
-  type = map(any)
-}
-
-variable "defaults" {
-  type = map(string)
+  type = map(object({
+    auto_apply     = bool
+    vcs_repository = optional(string)
+    working_dir    = optional(string, "/infra/terraform")
+  }))
 }
 
 variable "tfc_hostname" {
