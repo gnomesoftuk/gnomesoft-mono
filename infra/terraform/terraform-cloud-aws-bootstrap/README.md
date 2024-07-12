@@ -2,12 +2,7 @@
 
 To bootstrap a new workspace do the following:
 
-- Create a new tfvars file in the env dir
-- Add workspace name to it
-- Deploy terraform with:
-`terraform apply --var-file env/<workspace>.tf`
->>>>>>> tfc-aws-boot/main
-
+- Add a new workspace entry to the workspaces.auto.tfvars file
 
 # Bootstrapping trust between a TFC workspace and AWS
 
