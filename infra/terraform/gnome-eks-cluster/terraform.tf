@@ -3,7 +3,7 @@ terraform {
     organization = "Gnomesoft"
 
     workspaces {
-      name = "demo-project-aws-bootstrap"
+      name = "gnome-eks-cluster"
     }
   }
 }
