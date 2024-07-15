@@ -10,7 +10,9 @@
 				"ec2:*",
 				"ecr:*",
 				"ecr-public:*",
-				"eks:*"
+				"eks:*",
+				"kms:*",
+				"logs:*"
 			],
 			"Resource": "*"
 		}
