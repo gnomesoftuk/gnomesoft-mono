@@ -1,5 +1,6 @@
 provider "aws" {
   region = "us-east-1"
+  profile = var.aws_profile
 }
 
 provider "tfe" {
@@ -12,11 +13,12 @@ module "aws-federation" {
 
 module "tf_workspace" {
   source   = "./modules/aws-tf-workspace"
-  for_each = var.workspaces
+  for_each = tomap({ for workspace in local.workspaces : workspace.name => workspace })
 
   tfc_organization_name       = var.organization
   tfc_project_name            = var.project
-  tfc_workspace_name          = each.key
+  tfc_workspace_name          = "${each.key}"
+  aws_tfc_workspace_role      = each.value.alias
   aws_oidc_provider_tfc       = module.aws-federation.aws_oidc_provider_tfc
   aws_oidc_client_id_list_tfc = module.aws-federation.aws_oidc_client_id_list_tfc
   vcs_org                     = var.vcs.org
@@ -26,3 +28,24 @@ module "tf_workspace" {
   working_dir                 = each.value.working_dir
   auto_apply                  = each.value.auto_apply
 }
+
+locals {
+  workspaces = flatten([
+    for workspace_name, workspace in var.workspaces : [
+      for account in workspace.accounts : {
+        name = "${workspace_name}-${var.account_aliases[account]}"
+        alias = "${workspace_name}"
+        vcs_repository = workspace.vcs_repository
+        auto_apply = workspace.auto_apply
+        working_dir = workspace.working_dir
+      }
+    ]
+  ])
+}
+
+   # gnome-eks-cluster = {
+    #auto_apply = true
+    #vcs_repository = "gnomesoft-mono"
+    #working_dir = "/infra/terraform/gnome-eks-cluster"
+    #accounts = ["cloudguru"]
+  #}

@@ -33,6 +33,14 @@ variable "aws_oidc_provider_tfc" {
   description = "the oidc provider arn set in in AWS for authenicating TF cloud"
 }
 
+variable "aws_tfc_workspace_role" {
+  type = string
+  validation {
+    condition = length(var.aws_tfc_workspace_role) < 38
+    error_message = "The role name is too long. The limit is 38 characters."
+  }
+}
+
 variable "aws_oidc_client_id_list_tfc" {
   type        = list(string)
   description = "The client list set up in the oidc provider in AWS"

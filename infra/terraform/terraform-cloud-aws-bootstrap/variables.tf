@@ -6,6 +6,16 @@ variable "project" {
   default = "demo-project"
 }
 
+variable "aws_profile" {
+  type = string
+  description = "The profile we are connecting to the target AWS with for our workspaces"
+}
+
+variable "account_aliases" {
+  type = map(string)
+  description = "The account Ids we want to create workspaces for"
+}
+
 variable "vcs" {
   type = object({
     org   = string
@@ -18,6 +28,7 @@ variable "workspaces" {
     auto_apply     = bool
     vcs_repository = optional(string)
     working_dir    = optional(string, "/infra/terraform")
+    accounts        = list(string)
   }))
 }
 

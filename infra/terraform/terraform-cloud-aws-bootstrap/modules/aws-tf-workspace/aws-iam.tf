@@ -6,7 +6,7 @@
 #
 # https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role
 resource "aws_iam_role" "tfc_role" {
-  name_prefix = "tfc-role-${var.tfc_workspace_name}-"
+  name_prefix = "tfc-role-${var.aws_tfc_workspace_role}-"
 
   assume_role_policy = <<EOF
 {
@@ -40,7 +40,7 @@ resource "aws_iam_policy" "tfc_policy" {
   name_prefix = "tfc-policy-${var.tfc_workspace_name}-"
   description = "TFC run policy"
 
-  policy = file("${path.root}/policies/${var.tfc_workspace_name}.json")
+  policy = file("${path.root}/policies/${var.aws_tfc_workspace_role}.json")
 }
 
 # Creates an attachment to associate the above policy with the
