@@ -5,14 +5,16 @@
 			"Sid": "VisualEditor0",
 			"Effect": "Allow",
 			"Action": [
-				"iam:*",
-				"sts:*",
 				"ec2:*",
 				"ecr:*",
 				"ecr-public:*",
 				"eks:*",
+				"events:*",
+				"iam:*",
 				"kms:*",
-				"logs:*"
+				"logs:*",
+				"sts:*",
+				"sqs:*"
 			],
 			"Resource": "*"
 		}
