@@ -2,12 +2,22 @@
 # Self Managed Node Group
 ################################################################################
 
-output "self_managed_node_groups" {
-  description = "Map of attribute maps for all self managed node groups created"
-  value       = module.eks.self_managed_node_groups
+output "vpc_id" {
+    description = "The unique AWS ID for the VPC"
+    value = module.vpc.vpc_id
 }
 
-output "self_managed_node_groups_autoscaling_group_names" {
-  description = "List of the autoscaling group names created by self-managed node groups"
-  value       = module.eks.self_managed_node_groups_autoscaling_group_names
+output "vpc_cidr_block" {
+  description = "The CIDR block (range of Ips) supported by the VPC"
+  value       = module.vpc.vpc_cidr_block
+}
+
+output "public_subnet_ids" {
+    description = "A list of public subnet IDs in the VPC"
+    value = module.vpc.public_subnets
+}
+
+output "private_subnet_ids" {
+    description = "A list of private subnet IDs in the VPC"
+    value = module.vpc.private_subnets
 }
