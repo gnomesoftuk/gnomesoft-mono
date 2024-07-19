@@ -10,6 +10,7 @@ locals {
   container_port = 8080
 
   db_instance_class = "db.t3.micro"
+  db_engine_version = "8.0.35"
   db_name           = "wordpress"
   db_username       = "admin"
 
@@ -135,6 +136,25 @@ module "ecs_service" {
           containerPort = local.container_port
           hostPort      = local.container_port
           protocol      = "tcp"
+        }
+      ]
+
+      environment = [
+        {
+          name  = "WORDPRESS_DB_HOST"
+          value = module.db.db_instance_address
+        },
+        {
+          name  = "WORDPRESS_DB_USER"
+          value = local.db_username
+        },
+        {
+          name  = "WORDPRESS_DB_PASSWORD"
+          value = "password" // get this from a secret
+        },
+        {
+          name  = "WORDPRESS_DB_NAME"
+          value = local.db_username
         }
       ]
 
@@ -265,11 +285,11 @@ module "db" {
   identifier = "wordpress"
 
   engine            = "mysql"
-  engine_version    = "5.7"
-  instance_class    = "db.t3a.large"
+  engine_version    = local.db_engine_version
+  instance_class    = local.db_instance_class
   allocated_storage = 5
 
-  db_name  = local.name
+  db_name  = "wordpressDb"
   username = "user"
   port     = "3306"
 
@@ -296,10 +316,10 @@ module "db" {
   subnet_ids             = data.aws_subnets.database.ids
 
   # DB parameter group
-  family = "mysql5.7"
+  family = "mysql8.0"
 
   # DB option group
-  major_engine_version = "5.7"
+  major_engine_version = "8.0"
 
   # Database Deletion Protection
   deletion_protection = true
