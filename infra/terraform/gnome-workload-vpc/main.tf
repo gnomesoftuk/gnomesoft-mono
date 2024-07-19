@@ -11,7 +11,7 @@ locals {
   azs = ["us-east-1a", "us-east-1b", "us-east-1c"]
 
   tags = {
-    Example    = local.name
+    Workspace    = local.name
     GithubRepo = "gnomesoft-mono"
     GithubOrg  = "gnomesoftuk"
   }
@@ -36,11 +36,17 @@ module "vpc" {
   # tag subnets to support auto-discovery for services
   public_subnet_tags = {
     "kubernetes.io/role/elb" = 1
+    "type" = "public"
   }
 
   private_subnet_tags = {
     "kubernetes.io/role/internal-elb" = 1
     "karpenter.sh/discovery" = local.name
+    "type" = "private"
+  }
+
+  intra_subnet_tags = {
+    "type" = "internal"
   }
 
   tags = local.tags
