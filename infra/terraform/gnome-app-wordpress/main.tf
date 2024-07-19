@@ -6,9 +6,12 @@ locals {
   region = var.region
   name   = "ex-${basename(path.cwd)}"
 
+  container_name = "wordpress"
+  container_port = 8080
 
-  container_name = "ecsdemo-frontend"
-  container_port = 3000
+  db_instance_class = "db.t3.micro"
+  db_name           = "wordpress"
+  db_username       = "admin"
 
   tags = {
     Workspace  = local.name
@@ -47,6 +50,17 @@ data "aws_subnets" "lb" {
   filter {
     name   = "tag:type"
     values = ["public"]
+  }
+}
+
+data "aws_subnets" "database" {
+  filter {
+    name   = "tag:Workspace"
+    values = ["gnome-workload-vpc"]
+  }
+  filter {
+    name   = "tag:type"
+    values = ["internal"]
   }
 }
 
@@ -114,7 +128,7 @@ module "ecs_service" {
       cpu       = 512
       memory    = 1024
       essential = true
-      image     = "public.ecr.aws/aws-containers/ecsdemo-frontend:776fd50"
+      image     = "public.ecr.aws/bitnami/wordpress:6.6.0"
       port_mappings = [
         {
           name          = local.container_name
@@ -132,16 +146,16 @@ module "ecs_service" {
         condition     = "START"
       }]
 
-      enable_cloudwatch_logging = false
-      log_configuration = {
-        logDriver = "awsfirelens"
-        options = {
-          Name                    = "firehose"
-          region                  = local.region
-          delivery_stream         = "my-stream"
-          log-driver-buffer-limit = "2097152"
-        }
-      }
+      enable_cloudwatch_logging = true
+      #   log_configuration = {
+      #     logDriver = "awsfirelens"
+      #     options = {
+      #       Name                    = "firehose"
+      #       region                  = local.region
+      #       delivery_stream         = "my-stream"
+      #       log-driver-buffer-limit = "2097152"
+      #     }
+      #   }
 
       linux_parameters = {
         capabilities = {
@@ -153,10 +167,10 @@ module "ecs_service" {
       }
 
       # Not required for fluent-bit, just an example
-    #   volumes_from = [{
-    #     sourceContainer = "fluent-bit"
-    #     readOnly        = false
-    #   }]
+      #   volumes_from = [{
+      #     sourceContainer = "fluent-bit"
+      #     readOnly        = false
+      #   }]
 
       memory_reservation = 100
     }
@@ -208,6 +222,115 @@ module "ecs_service" {
   }
 
   tags = local.tags
+}
+
+
+
+################################################################################
+# Database
+################################################################################
+
+resource "aws_security_group" "database" {
+  name        = "wordpress-sg"
+  description = "Access to the RDS instances from the VPC"
+  vpc_id      = data.aws_vpc.workload.id
+
+  ingress {
+    from_port   = 3306
+    to_port     = 3306
+    protocol    = "tcp"
+    cidr_blocks = [ data.aws_vpc.workload.cidr_block ]
+  }
+
+#   ingress {
+#     from_port   = 8
+#     to_port     = 0
+#     protocol    = "icmp"
+#     cidr_blocks = ["${var.vpc_cidr_block}"]
+#   }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = local.tags
+}
+
+module "db" {
+  source = "terraform-aws-modules/rds/aws"
+
+  identifier = "wordpress"
+
+  engine            = "mysql"
+  engine_version    = "5.7"
+  instance_class    = "db.t3a.large"
+  allocated_storage = 5
+
+  db_name  = local.name
+  username = "user"
+  port     = "3306"
+
+  iam_database_authentication_enabled = true
+
+  vpc_security_group_ids = [aws_security_group.database.id]
+
+  //maintenance_window = "Mon:00:00-Mon:03:00"
+  //backup_window      = "03:00-06:00"
+
+  # Enhanced Monitoring - see example for details on how to create the role
+  # by yourself, in case you don't want to create it automatically
+  //monitoring_interval    = "30"
+  //monitoring_role_name   = "MyRDSMonitoringRole"
+  create_monitoring_role = false
+
+  tags = {
+    Owner       = "user"
+    Environment = "dev"
+  }
+
+  # DB subnet group
+  create_db_subnet_group = true
+  subnet_ids             = data.aws_subnets.database.ids
+
+  # DB parameter group
+  family = "mysql5.7"
+
+  # DB option group
+  major_engine_version = "5.7"
+
+  # Database Deletion Protection
+  deletion_protection = true
+
+  parameters = [
+    {
+      name  = "character_set_client"
+      value = "utf8mb4"
+    },
+    {
+      name  = "character_set_server"
+      value = "utf8mb4"
+    }
+  ]
+
+#   options = [
+#     {
+#       option_name = "MARIADB_AUDIT_PLUGIN"
+
+#       option_settings = [
+#         {
+#           name  = "SERVER_AUDIT_EVENTS"
+#           value = "CONNECT"
+#         },
+#         {
+#           name  = "SERVER_AUDIT_FILE_ROTATIONS"
+#           value = "37"
+#         },
+#       ]
+#     },
+#   ]
 }
 
 ################################################################################
