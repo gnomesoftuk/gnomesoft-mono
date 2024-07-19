@@ -1,17 +1,45 @@
 {
-	"Version": "2012-10-17",
-	"Statement": [
-		{
-			"Sid": "VisualEditor0",
-			"Effect": "Allow",
-			"Action": [
-				"ecr:*",
-				"ecr-public:*",
-				"ecs:*",
-				"alb:*",
-				"logs:*"
-			],
-			"Resource": "*"
-		}
-	]
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "VisualEditor0",
+            "Effect": "Allow",
+            "Action": [
+                "ssm:LabelParameterVersion",
+                "servicediscovery:ListOperations",
+                "servicediscovery:GetOperation",
+                "logs:*",
+                "servicediscovery:ListNamespaces",
+                "ssm:GetParameter",
+                "ec2:DescribeVpcAttribute",
+                "ssm:DeleteParameter",
+                "servicediscovery:CreateHttpNamespace",
+                "ssm:UnlabelParameterVersion",
+                "ssm:RemoveTagsFromResource",
+                "ssm:DescribeParameters",
+                "ssm:AddTagsToResource",
+                "servicediscovery:GetInstancesHealthStatus",
+                "servicediscovery:GetNamespace",
+                "ssm:GetParametersByPath",
+                "servicediscovery:GetInstance",
+                "servicediscovery:DiscoverInstancesRevision",
+                "servicediscovery:UpdateHttpNamespace",
+                "servicediscovery:GetService",
+                "servicediscovery:ListServices",
+                "servicediscovery:DiscoverInstances",
+                "ssm:GetParameterHistory",
+                "servicediscovery:DeleteNamespace",
+                "ssm:GetParameters",
+                "ssm:DeleteParameters",
+                "ssm:PutParameter",
+                "servicediscovery:ListTagsForResource",
+                "ssm:ListTagsForResource",
+                "ec2:DescribeVpcs",
+                "ecs:*",
+                "ec2:DescribeSubnets",
+                "servicediscovery:ListInstances"
+            ],
+            "Resource": "*"
+        }
+    ]
 }
