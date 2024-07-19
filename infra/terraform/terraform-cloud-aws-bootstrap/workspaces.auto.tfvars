@@ -4,18 +4,26 @@ vcs = {
 }
 
 account_aliases = { 
-  cloudguru = "058264128883" 
+  cloudguru = "975050240952"
 }
 
 workspaces = {
-  learn-terraform-checks = {
-    auto_apply = true
-    accounts = []
-  }
-  gnome-eks-cluster = {
+  gnome-workload-vpc = {
     auto_apply = true
     vcs_repository = "gnomesoft-mono"
+    working_dir = "/infra/terraform/gnome-workload-vpc"
+    accounts = ["cloudguru"]
+  }
+  gnome-eks-cluster = {
+    auto_apply = false // disabled for now
+    vcs_repository = "gnomesoft-mono"
     working_dir = "/infra/terraform/gnome-eks-cluster"
+    accounts = ["cloudguru"]
+  }
+  gnome-app-wordpress = {
+    auto_apply = true
+    vcs_repository = "gnomesoft-mono"
+    working_dir = "/infra/terraform/gnome-app-wordpress"
     accounts = ["cloudguru"]
   }
 }

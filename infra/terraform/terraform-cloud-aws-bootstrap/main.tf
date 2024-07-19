@@ -42,10 +42,3 @@ locals {
     ]
   ])
 }
-
-   # gnome-eks-cluster = {
-    #auto_apply = true
-    #vcs_repository = "gnomesoft-mono"
-    #working_dir = "/infra/terraform/gnome-eks-cluster"
-    #accounts = ["cloudguru"]
-  #}

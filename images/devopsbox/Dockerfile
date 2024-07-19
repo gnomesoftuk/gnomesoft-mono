@@ -24,6 +24,8 @@ ENV KUBECTL_VERSION="1.30"
 ENV KUSTOMIZE_VERSION="5.4.2"
 # https://go.dev/dl/
 ENV GOLANG_VERSION="1.22.4"
+# https://nodejs.org/en/download/package-manager/
+ENV NODEJS_VERSION="20.15"
 
 # Default to UTF-8 file.encoding
 ENV LANG="C.UTF-8"
@@ -134,6 +136,9 @@ RUN uname -m && \
 	export PATH=$PATH:/usr/local/go/bin							&& \
 	rm "golang.tar.gz"                                  		&& \
 	echo "GoLang installed"                          			&& \
+# Node version manager / NodeJs (https://nodejs.org/en/download/package-manager/)
+	curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash && \
+	nvm install ${NODEJS_VERSION}										&& \
 # terraform-docs (https://github.com/terraform-docs/terraform-docs)
 	curl -fsSL ${CURL_RETRIES} "$TFDOC_URL" -o "terraform-docs.tar.gz"  && \
 	tar -xf "terraform-docs.tar.gz" "terraform-docs"    && \
@@ -187,6 +192,8 @@ RUN uname -m && \
 	kubectl version --client   && \
 	kustomize version          && \
 	lsb_release -a             && \
+	node -v					   && \
+	npm -v					   && \
 	opa version                && \
 	openssl version            && \
 	packer --version           && \
@@ -215,7 +222,7 @@ RUN uname -m && \
 # https://code.visualstudio.com/remote/advancedcontainers/add-nonroot-user
 USER $USERNAME
 
-# Install pip packages
+# Install user packages
 RUN pipx install ansible-dev-tools \
 	ansible-core \
 	ansible-lint && \
@@ -223,4 +230,7 @@ RUN pipx install ansible-dev-tools \
 	# smoke test pip installed tools
 	ansible --version          && \
 	ansible-playbook --version && \
-	ansible-lint --version
+	ansible-lint --version && \
+	# go debugger
+	go install github.com/go-delve/delve/cmd/dlv@latest
+

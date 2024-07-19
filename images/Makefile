@@ -15,7 +15,8 @@ with_test:
 	$(MAKE) auth build test push
 
 _auth:
-	echo ${DOCKER_PASS} | docker login -u ${DOCKER_NAMESPACE} --password-stdin > /dev/null
+
+	echo ${DOCKER_PASS} | docker login -u ${DOCKER_NAMESPACE} --password-stdin &> /dev/null
 
 _build:
 	docker build ${DOCKER_BUILD_ARGS} --tag ${DOCKER_NAMESPACE}/${IMAGE}:${DOCKER_TAG} ./${IMAGE} -f ${IMAGE}/${DOCKER_FILE}

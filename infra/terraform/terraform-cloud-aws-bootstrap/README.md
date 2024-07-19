@@ -29,3 +29,9 @@ Congratulations! You now have a Terraform Cloud workspace where runs will automa
 
 * The aws-federation module assumes that everything is deployed into ONE AWS account. Hence
 it will not work for a multi-account setup (yet)
+
+* If deploying to a sandbox environment the state will be out of date
+when the env is destroyed. You will have to manually remove some parts of
+the state to achieve a successful run.
+
+`terraform state rm module.aws-federation.aws_iam_openid_connect_provider.tfc_provider`
