@@ -147,15 +147,15 @@ module "ecs_service" {
       }]
 
       enable_cloudwatch_logging = true
-      #   log_configuration = {
-      #     logDriver = "awsfirelens"
-      #     options = {
-      #       Name                    = "firehose"
-      #       region                  = local.region
-      #       delivery_stream         = "my-stream"
-      #       log-driver-buffer-limit = "2097152"
-      #     }
-      #   }
+      log_configuration = {
+        logDriver = "awsfirelens"
+        options = {
+          Name                    = "firehose"
+          region                  = local.region
+          delivery_stream         = "my-stream"
+          log-driver-buffer-limit = "2097152"
+        }
+      }
 
       linux_parameters = {
         capabilities = {
@@ -239,15 +239,15 @@ resource "aws_security_group" "database" {
     from_port   = 3306
     to_port     = 3306
     protocol    = "tcp"
-    cidr_blocks = [ data.aws_vpc.workload.cidr_block ]
+    cidr_blocks = [data.aws_vpc.workload.cidr_block]
   }
 
-#   ingress {
-#     from_port   = 8
-#     to_port     = 0
-#     protocol    = "icmp"
-#     cidr_blocks = ["${var.vpc_cidr_block}"]
-#   }
+  #   ingress {
+  #     from_port   = 8
+  #     to_port     = 0
+  #     protocol    = "icmp"
+  #     cidr_blocks = ["${var.vpc_cidr_block}"]
+  #   }
 
   egress {
     from_port   = 0
@@ -315,22 +315,22 @@ module "db" {
     }
   ]
 
-#   options = [
-#     {
-#       option_name = "MARIADB_AUDIT_PLUGIN"
+  #   options = [
+  #     {
+  #       option_name = "MARIADB_AUDIT_PLUGIN"
 
-#       option_settings = [
-#         {
-#           name  = "SERVER_AUDIT_EVENTS"
-#           value = "CONNECT"
-#         },
-#         {
-#           name  = "SERVER_AUDIT_FILE_ROTATIONS"
-#           value = "37"
-#         },
-#       ]
-#     },
-#   ]
+  #       option_settings = [
+  #         {
+  #           name  = "SERVER_AUDIT_EVENTS"
+  #           value = "CONNECT"
+  #         },
+  #         {
+  #           name  = "SERVER_AUDIT_FILE_ROTATIONS"
+  #           value = "37"
+  #         },
+  #       ]
+  #     },
+  #   ]
 }
 
 ################################################################################
