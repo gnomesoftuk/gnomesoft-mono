@@ -111,17 +111,17 @@ module "ecs_service" {
   # Container definition(s)
   container_definitions = {
 
-    fluent-bit = {
-      cpu       = 512
-      memory    = 1024
-      essential = true
-      image     = nonsensitive(data.aws_ssm_parameter.fluentbit.value)
-      firelens_configuration = {
-        type = "fluentbit"
-      }
-      memory_reservation = 50
-      user               = "0"
-    }
+    # fluent-bit = {
+    #   cpu       = 512
+    #   memory    = 1024
+    #   essential = true
+    #   image     = nonsensitive(data.aws_ssm_parameter.fluentbit.value)
+    #   firelens_configuration = {
+    #     type = "fluentbit"
+    #   }
+    #   memory_reservation = 50
+    #   user               = "0"
+    # }
 
     (local.container_name) = {
       cpu       = 512
@@ -139,7 +139,7 @@ module "ecs_service" {
 
       environment = [
         {
-          name  = "WORDPRESS_DB_HOST"
+          name  = "WORDPRESS_DATABASE_HOST"
           value = "${module.db.db_instance_address}:${local.db_port}"
         },
         {
@@ -147,7 +147,7 @@ module "ecs_service" {
           value = var.db_username
         },
         {
-          name  = "WORDPRESS_DATABASE_PASSWORD"
+          name  = "WORDPRESS_DATABASE_PASSWORD "
           value = var.db_password
         },
         {
@@ -159,20 +159,21 @@ module "ecs_service" {
       # Example image used requires access to write to root filesystem
       readonly_root_filesystem = false
 
-      dependencies = [{
-        containerName = "fluent-bit"
-        condition     = "START"
-      }]
+    #   dependencies = [{
+    #     containerName = "fluent-bit"
+    #     condition     = "START"
+    #   }]
 
       enable_cloudwatch_logging = true
       log_configuration = {
-        logDriver = "awsfirelens"
-        options = {
-          Name                    = "firehose"
-          region                  = local.region
-          delivery_stream         = "my-stream"
-          log-driver-buffer-limit = "2097152"
-        }
+      logdriver = "awslogdriver"
+        # logDriver = "awsfirelens"
+        # options = {
+        #   Name                    = "firehose"
+        #   region                  = local.region
+        #   delivery_stream         = "my-stream"
+        #   log-driver-buffer-limit = "2097152"
+        # }
       }
 
       linux_parameters = {
@@ -351,6 +352,17 @@ module "db" {
   #       ]
   #     },
   #   ]
+}
+
+// Create the database once RDS is ready
+resource "null_resource" "db_setup" {
+  depends_on = [module.db, aws_security_group.database]
+  provisioner "local-exec" {
+    command = <<-DB
+    "mysql --host=${module.db.db_instance_address} --port=${local.db_port} --user=${var.db_username} --password=${var.db_password} --database=${local.db_name} 
+    
+    DB
+  }
 }
 
 ################################################################################
