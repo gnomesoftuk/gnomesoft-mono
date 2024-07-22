@@ -6,6 +6,12 @@ variable "tfc_workspace_name" {
   description = "The name of the workspace that you'd like to create and connect to AWS"
 }
 
+variable "force_delete_workspace" {
+  type = bool
+  description = "Allow terraform to force delete the workspace - this is useful when working with sandbox accounts"
+  default = false
+}
+
 variable "tfc_aws_audience" {
   type        = string
   default     = "aws.workload.identity"

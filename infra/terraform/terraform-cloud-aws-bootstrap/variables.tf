@@ -32,6 +32,12 @@ variable "workspaces" {
   }))
 }
 
+variable "force_delete_workspace" {
+  type = bool
+  description = "Allow terraform to force delete the workspace - this is useful when working with sandbox accounts"
+  default = false
+}
+
 variable "tfc_hostname" {
   type        = string
   default     = "app.terraform.io"

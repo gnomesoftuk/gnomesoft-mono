@@ -17,11 +17,12 @@ resource "tfe_workspace" "team_workspace" {
   name         = var.tfc_workspace_name
   organization = var.tfc_organization_name
   project_id   = data.tfe_project.tfc_project.id
-  auto_apply =  var.auto_apply
+  auto_apply   = var.auto_apply
 
   working_directory = var.working_dir
 
-  trigger_patterns           = var.vcs_trigger_patterns
+  trigger_patterns = var.vcs_trigger_patterns
+  force_delete     = var.force_delete_workspace
   vcs_repo {
     branch                     = var.vcs_branch
     identifier                 = "${var.vcs_org}/${var.vcs_repository}"

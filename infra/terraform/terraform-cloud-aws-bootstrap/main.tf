@@ -1,5 +1,5 @@
 provider "aws" {
-  region = "us-east-1"
+  region  = "us-east-1"
   profile = var.aws_profile
 }
 
@@ -17,7 +17,7 @@ module "tf_workspace" {
 
   tfc_organization_name       = var.organization
   tfc_project_name            = var.project
-  tfc_workspace_name          = "${each.key}"
+  tfc_workspace_name          = each.key
   aws_tfc_workspace_role      = each.value.alias
   aws_oidc_provider_tfc       = module.aws-federation.aws_oidc_provider_tfc
   aws_oidc_client_id_list_tfc = module.aws-federation.aws_oidc_client_id_list_tfc
@@ -27,17 +27,18 @@ module "tf_workspace" {
   vcs_trigger_patterns        = ["${each.value.working_dir}/**/*"]
   working_dir                 = each.value.working_dir
   auto_apply                  = each.value.auto_apply
+  force_delete_workspace      = var.force_delete_workspace
 }
 
 locals {
   workspaces = flatten([
     for workspace_name, workspace in var.workspaces : [
       for account in workspace.accounts : {
-        name = "${workspace_name}-${var.account_aliases[account]}"
-        alias = "${workspace_name}"
+        name           = "${workspace_name}-${var.account_aliases[account]}"
+        alias          = "${workspace_name}"
         vcs_repository = workspace.vcs_repository
-        auto_apply = workspace.auto_apply
-        working_dir = workspace.working_dir
+        auto_apply     = workspace.auto_apply
+        working_dir    = workspace.working_dir
       }
     ]
   ])
