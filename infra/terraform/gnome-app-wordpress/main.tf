@@ -99,6 +99,36 @@ module "ecs_cluster" {
 # Service
 ################################################################################
 
+module "ecs_admin_shell" {
+  source  = "terraform-aws-modules/ecs/aws//modules/service"
+  version = "~> 5.11"
+
+  name        = "admin-shell"
+  cluster_arn = module.ecs_cluster.arn
+
+  cpu    = 512
+  memory = 1024
+
+  enable_execute_command = true
+
+  container_definitions = {
+    admin-shell = {
+      cpu                = 256
+      memory             = 512
+      image              = "amazonlinux"
+      essential          = true
+      entryPoint         = ["/bin/sh"]
+      command            = ["-c", "sleep", "3600"]
+      memory_reservation = 50
+      linux_parameters = {
+        initProcessEnabled : true
+      }
+    }
+  }
+
+  subnet_ids = data.aws_subnets.public.ids
+}
+
 module "ecs_service" {
   source  = "terraform-aws-modules/ecs/aws//modules/service"
   version = "~> 5.11"
@@ -110,7 +140,7 @@ module "ecs_service" {
   memory = 4096
 
   # Enables ECS Exec
-  enable_execute_command = true
+  enable_execute_command = false
 
   # Container definition(s)
   container_definitions = {
@@ -151,7 +181,7 @@ module "ecs_service" {
           value = var.db_username
         },
         {
-          name  = "WORDPRESS_DATABASE_PASSWORD "
+          name  = "WORDPRESS_DATABASE_PASSWORD"
           value = var.db_password
         },
         {
@@ -170,7 +200,7 @@ module "ecs_service" {
 
       enable_cloudwatch_logging = true
       log_configuration = {
-        logdriver = "awslogdriver"
+        logdriver = "awslogs"
         # logDriver = "awsfirelens"
         # options = {
         #   Name                    = "firehose"
@@ -244,48 +274,48 @@ module "ecs_service" {
 # Bastion
 ################################################################################
 
-resource "aws_security_group" "bastion" {
-  name        = "bastion-sg"
-  description = "Access to the bastion host via SSH"
-  vpc_id      = data.aws_vpc.workload.id
-}
+# resource "aws_security_group" "bastion" {
+#   name        = "bastion-sg"
+#   description = "Access to the bastion host via SSH"
+#   vpc_id      = data.aws_vpc.workload.id
+# }
 
-resource "aws_vpc_security_group_ingress_rule" "bastion_from_anywhere" {
-  security_group_id = aws_security_group.bastion.id
-  from_port         = 22
-  to_port           = 22
-  ip_protocol       = "tcp"
-  cidr_ipv4         = "0.0.0.0/0"
-}
+# resource "aws_vpc_security_group_ingress_rule" "bastion_from_anywhere" {
+#   security_group_id = aws_security_group.bastion.id
+#   from_port         = 22
+#   to_port           = 22
+#   ip_protocol       = "tcp"
+#   cidr_ipv4         = "0.0.0.0/0"
+# }
 
-resource "aws_vpc_security_group_egress_rule" "bastion_to_anywhere" {
-  security_group_id = aws_security_group.bastion.id
-  cidr_ipv4         = "0.0.0.0/0"
-  ip_protocol       = "-1"
-}
+# resource "aws_vpc_security_group_egress_rule" "bastion_to_anywhere" {
+#   security_group_id = aws_security_group.bastion.id
+#   cidr_ipv4         = "0.0.0.0/0"
+#   ip_protocol       = "-1"
+# }
 
-resource "tls_private_key" "pk" {
-  algorithm = "RSA"
-  rsa_bits  = 4096
-}
+# resource "tls_private_key" "pk" {
+#   algorithm = "RSA"
+#   rsa_bits  = 4096
+# }
 
-resource "aws_key_pair" "bastion" {
-  key_name   = "bastion"
-  public_key = tls_private_key.pk.public_key_openssh
-}
+# resource "aws_key_pair" "bastion" {
+#   key_name   = "bastion"
+#   public_key = tls_private_key.pk.public_key_openssh
+# }
 
-module "bastion" {
-  source  = "terraform-aws-modules/ec2-instance/aws"
-  version = "~> 5.6"
+# module "bastion" {
+#   source  = "terraform-aws-modules/ec2-instance/aws"
+#   version = "~> 5.6"
 
-  name = "mysql-bastion"
+#   name = "mysql-bastion"
 
-  instance_type          = "t2.micro"
-  key_name               = aws_key_pair.bastion.key_name
-  monitoring             = false
-  vpc_security_group_ids = [aws_security_group.bastion.id]
-  subnet_id              = data.aws_subnets.public.ids[0]
-}
+#   instance_type          = "t2.micro"
+#   key_name               = aws_key_pair.bastion.key_name
+#   monitoring             = false
+#   vpc_security_group_ids = [aws_security_group.bastion.id]
+#   subnet_id              = data.aws_subnets.public.ids[0]
+# }
 
 ################################################################################
 # Database
@@ -297,19 +327,19 @@ resource "aws_security_group" "database" {
   vpc_id      = data.aws_vpc.workload.id
 }
 
-resource "aws_vpc_security_group_ingress_rule" "db_from_bastion" {
-  security_group_id = aws_security_group.database.id
-  from_port         = local.db_port
-  to_port           = local.db_port
-  ip_protocol          = "tcp"
-  referenced_security_group_id = aws_security_group.bastion.id
-}
+# resource "aws_vpc_security_group_ingress_rule" "db_from_bastion" {
+#   security_group_id = aws_security_group.database.id
+#   from_port         = local.db_port
+#   to_port           = local.db_port
+#   ip_protocol          = "tcp"
+#   referenced_security_group_id = aws_security_group.bastion.id
+# }
 
 resource "aws_vpc_security_group_ingress_rule" "db_from_application" {
-  security_group_id = aws_security_group.database.id
-  from_port         = local.db_port
-  to_port           = local.db_port
-  ip_protocol       = "tcp"
+  security_group_id            = aws_security_group.database.id
+  from_port                    = local.db_port
+  to_port                      = local.db_port
+  ip_protocol                  = "tcp"
   referenced_security_group_id = module.ecs_service.security_group_id
 }
 
@@ -347,11 +377,6 @@ module "db" {
   //monitoring_interval    = "30"
   //monitoring_role_name   = "MyRDSMonitoringRole"
   create_monitoring_role = false
-
-  tags = {
-    Owner       = "user"
-    Environment = "dev"
-  }
 
   # DB subnet group
   create_db_subnet_group = true
