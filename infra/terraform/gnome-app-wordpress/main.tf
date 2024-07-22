@@ -9,10 +9,8 @@ locals {
   container_name = "wordpress"
   container_port = 8080
 
-  db_instance_class = "db.t3.micro"
-  db_engine_version = "8.0.35"
-  db_name           = "wordpress"
-  db_username       = "admin"
+  db_name = "wordpressDB"
+  db_port = 3306
 
   tags = {
     Workspace  = local.name
@@ -142,19 +140,19 @@ module "ecs_service" {
       environment = [
         {
           name  = "WORDPRESS_DB_HOST"
-          value = module.db.db_instance_address
+          value = "${module.db.db_instance_address}:${local.db_port}"
         },
         {
-          name  = "WORDPRESS_DB_USER"
-          value = local.db_username
+          name  = "WORDPRESS_DATABASE_USER"
+          value = var.db_username
         },
         {
-          name  = "WORDPRESS_DB_PASSWORD"
-          value = "password" // get this from a secret
+          name  = "WORDPRESS_DATABASE_PASSWORD"
+          value = var.db_password
         },
         {
-          name  = "WORDPRESS_DB_NAME"
-          value = local.db_username
+          name  = "WORDPRESS_DATABASE_NAME"
+          value = local.db_name
         }
       ]
 
@@ -285,13 +283,15 @@ module "db" {
   identifier = "wordpress"
 
   engine            = "mysql"
-  engine_version    = local.db_engine_version
-  instance_class    = local.db_instance_class
+  engine_version    = var.db_engine_version
+  instance_class    = var.db_instance_class
   allocated_storage = 5
 
-  db_name  = "wordpressDb"
-  username = "user"
-  port     = "3306"
+  db_name  = local.db_name
+  username = var.db_username
+  password = var.db_password
+  port     = local.db_port
+  //manage_master_user_password = true  // SECURITY: we must replace password with this
 
   iam_database_authentication_enabled = true
 
