@@ -1,5 +1,13 @@
 provider "aws" {
   region = var.region
+
+  default_tags {
+    tags = {
+      Workspace  = local.name
+      GithubRepo = "gnomesoft-mono"
+      GithubOrg  = "gnomesoftuk"
+    }
+  }
 }
 
 locals {
@@ -11,12 +19,6 @@ locals {
 
   db_name = "wordpressDB"
   db_port = 3306
-
-  tags = {
-    Workspace  = local.name
-    GithubRepo = "gnomesoft-mono"
-    GithubOrg  = "gnomesoftuk"
-  }
 }
 
 ################################################################################
@@ -30,7 +32,7 @@ data "aws_vpc" "workload" {
   }
 }
 
-data "aws_subnets" "workload" {
+data "aws_subnets" "private" {
   filter {
     name   = "tag:Workspace"
     values = ["gnome-workload-vpc"]
@@ -41,7 +43,7 @@ data "aws_subnets" "workload" {
   }
 }
 
-data "aws_subnets" "lb" {
+data "aws_subnets" "public" {
   filter {
     name   = "tag:Workspace"
     values = ["gnome-workload-vpc"]
@@ -52,7 +54,7 @@ data "aws_subnets" "lb" {
   }
 }
 
-data "aws_subnets" "database" {
+data "aws_subnets" "internal" {
   filter {
     name   = "tag:Workspace"
     values = ["gnome-workload-vpc"]
@@ -88,7 +90,9 @@ module "ecs_cluster" {
     }
   }
 
-  tags = local.tags
+  tags = {
+    Purpose = "Hosting workloads"
+  }
 }
 
 ################################################################################
@@ -140,7 +144,7 @@ module "ecs_service" {
       environment = [
         {
           name  = "WORDPRESS_DATABASE_HOST"
-          value = "${module.db.db_instance_address}:${local.db_port}"
+          value = module.db.db_instance_address
         },
         {
           name  = "WORDPRESS_DATABASE_USER"
@@ -159,14 +163,14 @@ module "ecs_service" {
       # Example image used requires access to write to root filesystem
       readonly_root_filesystem = false
 
-    #   dependencies = [{
-    #     containerName = "fluent-bit"
-    #     condition     = "START"
-    #   }]
+      #   dependencies = [{
+      #     containerName = "fluent-bit"
+      #     condition     = "START"
+      #   }]
 
       enable_cloudwatch_logging = true
       log_configuration = {
-      logdriver = "awslogdriver"
+        logdriver = "awslogdriver"
         # logDriver = "awsfirelens"
         # options = {
         #   Name                    = "firehose"
@@ -215,8 +219,7 @@ module "ecs_service" {
     }
   }
 
-  //subnet_ids = module.vpc.private_subnets
-  subnet_ids = data.aws_subnets.workload.ids
+  subnet_ids = data.aws_subnets.private.ids
 
   security_group_rules = {
     alb_ingress_3000 = {
@@ -235,15 +238,54 @@ module "ecs_service" {
       cidr_blocks = ["0.0.0.0/0"]
     }
   }
-
-  service_tags = {
-    "ServiceTag" = "Tag on service level"
-  }
-
-  tags = local.tags
 }
 
+################################################################################
+# Bastion
+################################################################################
 
+resource "aws_security_group" "bastion" {
+  name        = "bastion-sg"
+  description = "Access to the bastion host via SSH"
+  vpc_id      = data.aws_vpc.workload.id
+}
+
+resource "aws_vpc_security_group_ingress_rule" "bastion_from_anywhere" {
+  security_group_id = aws_security_group.bastion.id
+  from_port         = 22
+  to_port           = 22
+  ip_protocol       = "tcp"
+  cidr_ipv4         = "0.0.0.0/0"
+}
+
+resource "aws_vpc_security_group_egress_rule" "bastion_to_anywhere" {
+  security_group_id = aws_security_group.bastion.id
+  cidr_ipv4         = "0.0.0.0/0"
+  ip_protocol       = "-1"
+}
+
+resource "tls_private_key" "pk" {
+  algorithm = "RSA"
+  rsa_bits  = 4096
+}
+
+resource "aws_key_pair" "bastion" {
+  key_name   = "bastion"
+  public_key = tls_private_key.pk.public_key_openssh
+}
+
+module "bastion" {
+  source  = "terraform-aws-modules/ec2-instance/aws"
+  version = "~> 5.6"
+
+  name = "mysql-bastion"
+
+  instance_type          = "t2.micro"
+  key_name               = aws_key_pair.bastion.key_name
+  monitoring             = false
+  vpc_security_group_ids = [aws_security_group.bastion.id]
+  subnet_id              = data.aws_subnets.public.ids[0]
+}
 
 ################################################################################
 # Database
@@ -253,29 +295,28 @@ resource "aws_security_group" "database" {
   name        = "wordpress-sg"
   description = "Access to the RDS instances from the VPC"
   vpc_id      = data.aws_vpc.workload.id
+}
 
-  ingress {
-    from_port   = 3306
-    to_port     = 3306
-    protocol    = "tcp"
-    cidr_blocks = [data.aws_vpc.workload.cidr_block]
-  }
+resource "aws_vpc_security_group_ingress_rule" "db_from_bastion" {
+  security_group_id = aws_security_group.database.id
+  from_port         = local.db_port
+  to_port           = local.db_port
+  ip_protocol          = "tcp"
+  referenced_security_group_id = aws_security_group.bastion.id
+}
 
-  #   ingress {
-  #     from_port   = 8
-  #     to_port     = 0
-  #     protocol    = "icmp"
-  #     cidr_blocks = ["${var.vpc_cidr_block}"]
-  #   }
+resource "aws_vpc_security_group_ingress_rule" "db_from_application" {
+  security_group_id = aws_security_group.database.id
+  from_port         = local.db_port
+  to_port           = local.db_port
+  ip_protocol       = "tcp"
+  referenced_security_group_id = module.ecs_service.security_group_id
+}
 
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = local.tags
+resource "aws_vpc_security_group_egress_rule" "db_to_anywhere" {
+  security_group_id = aws_security_group.database.id
+  cidr_ipv4         = "0.0.0.0/0"
+  ip_protocol       = "-1"
 }
 
 module "db" {
@@ -314,7 +355,7 @@ module "db" {
 
   # DB subnet group
   create_db_subnet_group = true
-  subnet_ids             = data.aws_subnets.database.ids
+  subnet_ids             = data.aws_subnets.internal.ids
 
   # DB parameter group
   family = "mysql8.0"
@@ -354,29 +395,17 @@ module "db" {
   #   ]
 }
 
-// Create the database once RDS is ready
-resource "null_resource" "db_setup" {
-  depends_on = [module.db, aws_security_group.database]
-  provisioner "local-exec" {
-    command = <<-DB
-    "mysql --host=${module.db.db_instance_address} --port=${local.db_port} --user=${var.db_username} --password=${var.db_password} --database=${local.db_name} 
-    
-    DB
-  }
-}
-
 ################################################################################
 # Supporting Resources
 ################################################################################
 
-data "aws_ssm_parameter" "fluentbit" {
-  name = "/aws/service/aws-for-fluent-bit/stable"
-}
+# data "aws_ssm_parameter" "fluentbit" {
+#   name = "/aws/service/aws-for-fluent-bit/stable"
+# }
 
 resource "aws_service_discovery_http_namespace" "this" {
   name        = local.name
   description = "CloudMap namespace for ${local.name}"
-  tags        = local.tags
 }
 
 module "alb" {
@@ -388,9 +417,7 @@ module "alb" {
   load_balancer_type = "application"
 
   vpc_id  = data.aws_vpc.workload.id
-  subnets = data.aws_subnets.lb.ids
-  // vpc_id  = module.vpc.vpc_id
-  //subnets = module.vpc.public_subnets
+  subnets = data.aws_subnets.public.ids
 
   # For example only
   enable_deletion_protection = false
@@ -447,6 +474,4 @@ module "alb" {
       create_attachment = false
     }
   }
-
-  tags = local.tags
 }
