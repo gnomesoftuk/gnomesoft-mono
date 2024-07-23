@@ -35,6 +35,7 @@ data "tfe_workspace" "trigger_workspace" {
   for_each    = toset(var.trigger_workspaces)
   name         = each.key
   organization = var.tfc_organization_name
+  depends_on = [ tfe_workspace.team_workspace]
 }
 
 resource "tfe_run_trigger" "link_dependent_workspace" {
