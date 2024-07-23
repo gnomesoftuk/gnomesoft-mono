@@ -416,6 +416,10 @@ module "db" {
 
   vpc_security_group_ids = [aws_security_group.database.id]
 
+  # For a production DB we want these options enabled, for now they are disabled
+  blue_green_update = {
+    enabled = false
+  }
   //maintenance_window = "Mon:00:00-Mon:03:00"
   //backup_window      = "03:00-06:00"
 
@@ -424,6 +428,7 @@ module "db" {
   //monitoring_interval    = "30"
   //monitoring_role_name   = "MyRDSMonitoringRole"
   create_monitoring_role = false
+  deletion_protection    = false
 
   # DB subnet group
   create_db_subnet_group = true
@@ -435,8 +440,8 @@ module "db" {
   # DB option group
   major_engine_version = "8.0"
 
-  # Database Deletion Protection
-  deletion_protection = true
+
+
 
   parameters = [
     {

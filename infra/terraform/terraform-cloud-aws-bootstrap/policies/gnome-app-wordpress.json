@@ -10,6 +10,7 @@
                 "rds:*",
                 "logs:*",
                 "ec2:*",
+				"kms:*",
                 "ecs:List*",
 				"ecs:Describe*"
             ],

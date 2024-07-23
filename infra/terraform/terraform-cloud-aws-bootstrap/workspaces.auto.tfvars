@@ -3,7 +3,7 @@ vcs = {
   trunk = "main"
 }
 
-account_aliases = { 
+account_aliases = {
   cloudguru = "975050282187"
 }
 
@@ -11,30 +11,30 @@ account_aliases = {
 // they will be deployed
 workspaces = {
   gnome-workload-vpc = {
-    auto_apply = true
+    auto_apply     = true
     vcs_repository = "gnomesoft-mono"
-    working_dir = "/infra/terraform/gnome-workload-vpc"
-    accounts = ["cloudguru"]
+    working_dir    = "/infra/terraform/gnome-workload-vpc"
+    accounts       = ["cloudguru"]
   }
- gnome-ecs-cluster = {
-    auto_apply = true
+  gnome-ecs-cluster = {
+    auto_apply     = true
     vcs_repository = "gnomesoft-mono"
-    working_dir = "/infra/terraform/gnome-ecs-cluster"
-    accounts = ["cloudguru"]
-    run_after = ["gnome-workload-vpc"]
+    working_dir    = "/infra/terraform/gnome-ecs-cluster"
+    accounts       = ["cloudguru"]
+    run_after      = ["gnome-workload-vpc"]
   }
   gnome-eks-cluster = {
-    auto_apply = false // disabled for now
+    auto_apply     = false // disabled for now
     vcs_repository = "gnomesoft-mono"
-    working_dir = "/infra/terraform/gnome-eks-cluster"
-    accounts = ["cloudguru"]
-    disabled = true
+    working_dir    = "/infra/terraform/gnome-eks-cluster"
+    accounts       = ["cloudguru"]
+    disabled       = true
   }
   gnome-app-wordpress = {
-    auto_apply = true
+    auto_apply     = true
     vcs_repository = "gnomesoft-mono"
-    working_dir = "/infra/terraform/gnome-app-wordpress"
-    accounts = ["cloudguru"]
-    run_after = ["gnome-ecs-cluster"]
+    working_dir    = "/infra/terraform/gnome-app-wordpress"
+    accounts       = ["cloudguru"]
+    run_after      = ["gnome-ecs-cluster"]
   }
 }

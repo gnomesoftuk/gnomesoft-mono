@@ -34,14 +34,14 @@ module "tf_workspace" {
 locals {
   workspaces = flatten([
     for workspace_name, workspace in var.workspaces : [
-        for account in workspace.accounts : {
-          name           = "${workspace_name}-${var.account_aliases[account]}"
-          alias          = "${workspace_name}"
-          vcs_repository = workspace.vcs_repository
-          auto_apply     = workspace.auto_apply
-          working_dir    = workspace.working_dir
-          run_after      = [for ws in workspace.run_after: "${ws}-${var.account_aliases[account]}"]
-        } if workspace.disabled == false
+      for account in workspace.accounts : {
+        name           = "${workspace_name}-${var.account_aliases[account]}"
+        alias          = "${workspace_name}"
+        vcs_repository = workspace.vcs_repository
+        auto_apply     = workspace.auto_apply
+        working_dir    = workspace.working_dir
+        run_after      = [for ws in workspace.run_after : "${ws}-${var.account_aliases[account]}"]
+      } if workspace.disabled == false
     ]
   ])
 }
