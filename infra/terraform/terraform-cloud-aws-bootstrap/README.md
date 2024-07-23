@@ -35,3 +35,6 @@ when the env is destroyed. You will have to manually remove some parts of
 the state to achieve a successful run.
 
 `terraform state rm module.aws-federation.aws_iam_openid_connect_provider.tfc_provider`
+
+Then to clear out defunct workspaces run:
+`terraform apply -var 'force_delete_workspace=true`

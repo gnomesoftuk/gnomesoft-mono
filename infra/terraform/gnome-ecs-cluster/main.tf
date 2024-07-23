@@ -30,7 +30,7 @@ data "aws_vpc" "workload" {
 data "aws_subnets" "private" {
   filter {
     name   = "tag:Workspace"
-    values = [aws_vpc.workload.id]
+    values = [data.aws_vpc.workload.id]
   }
   filter {
     name   = "tag:type"
@@ -42,7 +42,7 @@ data "aws_subnets" "private" {
 data "aws_subnets" "public" {
   filter {
     name   = "tag:Workspace"
-    values = [aws_vpc.workload.id]
+    values = [data.aws_vpc.workload.id]
   }
   filter {
     name   = "tag:type"
@@ -53,7 +53,7 @@ data "aws_subnets" "public" {
 data "aws_subnets" "internal" {
   filter {
     name   = "tag:Workspace"
-    values = [aws_vpc.workload.id]
+    values = [data.aws_vpc.workload.id]
   }
   filter {
     name   = "tag:type"
@@ -120,19 +120,25 @@ module "alb" {
   security_group_egress_rules = {
     all = {
       ip_protocol = "-1"
-      cidr_ipv4   = data.aws_vpc.private.cidr_block
+      cidr_ipv4   = data.aws_vpc.workload.cidr_block
     }
   }
 
-  // limit to HTTP listener for now as we don't have a domain
+  // Use an empty HTTP listener for now as we don't have a domain
   // set up for TLS
   listeners = {
     ex_http = {
       port     = 80
       protocol = "HTTP"
 
-      forward = {
-        target_group_key = "ex_ecs"
+      # forward = {
+      #   target_group_key = "ex_ecs"
+      # }
+      default_action = "fixed-response"
+      fixed_response = {
+        content_type = "text/plain"
+        message_body = "No route found"
+        status_code  = 404
       }
     }
   }
