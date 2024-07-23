@@ -14,6 +14,12 @@ workspaces = {
     working_dir = "/infra/terraform/gnome-workload-vpc"
     accounts = ["cloudguru"]
   }
+ gnome-ecs-cluster = {
+    auto_apply = false // disabled for now
+    vcs_repository = "gnomesoft-mono"
+    working_dir = "/infra/terraform/gnome-ecs-cluster"
+    accounts = ["cloudguru"]
+  }
   gnome-eks-cluster = {
     auto_apply = false // disabled for now
     vcs_repository = "gnomesoft-mono"

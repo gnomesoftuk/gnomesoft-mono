@@ -5,13 +5,10 @@
             "Sid": "VisualEditor0",
             "Effect": "Allow",
             "Action": [
-                "ssm:*",
                 "iam:*",
-                "rds:*",
                 "logs:*",
                 "ec2:*",
-                "ecs:List*",
-				"ecs:Describe*"
+                "ecs:*"
             ],
             "Resource": "*"
         }

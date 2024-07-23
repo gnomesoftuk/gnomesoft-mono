@@ -8,6 +8,11 @@ variable "vpc_name" {
     default = "gnome-workload-vpc"
 }
 
+variable "deployment_cluster_name" {
+  description = "The ECS cluster to deploy to"
+  default = "gnome-workload-cluster"
+}
+
 variable "db_instance_class" {
     default = "db.t3.micro"
 }
