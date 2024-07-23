@@ -127,7 +127,7 @@ module "alb" {
   // Use an empty HTTP listener for now as we don't have a domain
   // set up for TLS
   listeners = {
-    ex_http = {
+    http = {
       port     = 80
       protocol = "HTTP"
 

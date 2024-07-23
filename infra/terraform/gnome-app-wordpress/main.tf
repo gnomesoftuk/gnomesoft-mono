@@ -74,6 +74,22 @@ data "aws_ecs_cluster" "ecs-mongo" {
 }
 
 ################################################################################
+# ECS Service Automation
+################################################################################
+
+
+# module "codedeploy" {
+#   source                     = "../modules/codedeploy-ecs"
+
+#   name                       = "gnome-app-wordpress-deploy"
+#   ecs_cluster_name           = var.deployment_cluster_name
+#   ecs_service_name           = "gnome-app-wordpress" // do I have to deploy this first ?
+#   lb_listener_arns           = ["${var.lb_listener_arns}"]
+#   blue_lb_target_group_name  = "${var.blue_lb_target_group_name}"
+#   green_lb_target_group_name = "${var.green_lb_target_group_name}"
+# }
+
+################################################################################
 # Service
 # 
 # deploying applications and utilities with terraform is problematic
