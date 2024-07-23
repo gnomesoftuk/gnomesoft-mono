@@ -29,4 +29,9 @@ variable "db_password" {
     default = ".QovqLe@vu2WTn2o"
     sensitive = true
 }
+// facilitate data sharing using lookups against resources with this tag
+variable "gnome_ecs_cluster_workspace" {
+    description = "Logical name of the ECS cluster workspace (ie without prefix)"
+    default = "gnome-ecs-cluster"
+}
   

@@ -294,6 +294,35 @@ data "aws_ecs_cluster" "ecs-mongo" {
 #   }
 # }
 
+resource "aws_security_group" "ecs_service" {
+  name        = "wordpress-service-sg"
+  description = "Security group for the ECS service"
+  vpc_id      = data.aws_vpc.workload.id
+}
+
+data "aws_security_group" "load_balancer" {
+  filter {
+    name   = "tag:Workspace"
+    values = [var.gnome_ecs_cluster_workspace]
+  }
+}
+
+// allow traffic IN from the ALB on the container's port
+resource "aws_vpc_security_group_ingress_rule" "app_from_alb" {
+  security_group_id            = aws_security_group.ecs_service.id
+  from_port                    = local.container_port
+  to_port                      = local.container_port
+  ip_protocol                  = "tcp"
+  referenced_security_group_id = data.aws_security_group.load_balancer.id
+}
+
+// allow traffic OUT to anywhere
+resource "aws_vpc_security_group_egress_rule" "app_to_anywhere" {
+  security_group_id = aws_security_group.ecs_service.id
+  cidr_ipv4         = "0.0.0.0/0"
+  ip_protocol       = "-1"
+}
+
 ################################################################################
 # Bastion
 ################################################################################
@@ -351,14 +380,16 @@ resource "aws_security_group" "database" {
   vpc_id      = data.aws_vpc.workload.id
 }
 
+// allow traffic IN from the ECS service on the database's port
 resource "aws_vpc_security_group_ingress_rule" "db_from_application" {
   security_group_id            = aws_security_group.database.id
   from_port                    = local.db_port
   to_port                      = local.db_port
   ip_protocol                  = "tcp"
-  referenced_security_group_id = module.ecs_service.security_group_id
+  referenced_security_group_id = aws_security_group.ecs_service.id
 }
 
+// allow traffic OUT to anywhere
 resource "aws_vpc_security_group_egress_rule" "db_to_anywhere" {
   security_group_id = aws_security_group.database.id
   cidr_ipv4         = "0.0.0.0/0"
