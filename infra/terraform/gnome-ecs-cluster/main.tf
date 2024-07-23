@@ -29,7 +29,7 @@ data "aws_vpc" "workload" {
 
 data "aws_subnets" "private" {
   filter {
-    name   = "tag:Workspace"
+    name   = "vpc-id"
     values = [data.aws_vpc.workload.id]
   }
   filter {
@@ -41,7 +41,7 @@ data "aws_subnets" "private" {
 
 data "aws_subnets" "public" {
   filter {
-    name   = "tag:Workspace"
+    name   = "vpc-id"
     values = [data.aws_vpc.workload.id]
   }
   filter {
@@ -52,7 +52,7 @@ data "aws_subnets" "public" {
 
 data "aws_subnets" "internal" {
   filter {
-    name   = "tag:Workspace"
+    name   = "vpc-id"
     values = [data.aws_vpc.workload.id]
   }
   filter {
