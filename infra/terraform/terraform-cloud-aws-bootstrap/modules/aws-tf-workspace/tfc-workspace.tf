@@ -28,6 +28,19 @@ resource "tfe_workspace" "team_workspace" {
     identifier                 = "${var.vcs_org}/${var.vcs_repository}"
     github_app_installation_id = data.tfe_github_app_installation.ghe_installation.id
   }
+  auto_apply_run_trigger = true
+}
+
+data "tfe_workspace" "trigger_workspace" {
+  for_each    = toset(var.trigger_workspaces)
+  name         = each.key
+  organization = var.tfc_organization_name
+}
+
+resource "tfe_run_trigger" "link_dependent_workspace" {
+  for_each    = data.tfe_workspace.trigger_workspace
+  workspace_id = tfe_workspace.team_workspace.id
+  sourceable_id = each.value.id
 }
 
 resource "tfe_workspace_settings" "test-settings" {

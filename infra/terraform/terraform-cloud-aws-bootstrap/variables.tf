@@ -7,12 +7,12 @@ variable "project" {
 }
 
 variable "aws_profile" {
-  type = string
+  type        = string
   description = "The profile we are connecting to the target AWS with for our workspaces"
 }
 
 variable "account_aliases" {
-  type = map(string)
+  type        = map(string)
   description = "The account Ids we want to create workspaces for"
 }
 
@@ -28,14 +28,16 @@ variable "workspaces" {
     auto_apply     = bool
     vcs_repository = optional(string)
     working_dir    = optional(string, "/infra/terraform")
-    accounts        = list(string)
+    accounts       = list(string)
+    run_after      = optional(list(string), [])
+    disabled       = optional(bool, false)
   }))
 }
 
 variable "force_delete_workspace" {
-  type = bool
+  type        = bool
   description = "Allow terraform to force delete the workspace - this is useful when working with sandbox accounts"
-  default = false
+  default     = false
 }
 
 variable "tfc_hostname" {

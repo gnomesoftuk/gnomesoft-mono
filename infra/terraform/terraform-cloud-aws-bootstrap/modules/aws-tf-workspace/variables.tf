@@ -12,6 +12,12 @@ variable "force_delete_workspace" {
   default = false
 }
 
+variable "trigger_workspaces" {
+  type = list(string)
+  description = "A list of workspaces that this workspace depends on"
+  default = []
+}
+
 variable "tfc_aws_audience" {
   type        = string
   default     = "aws.workload.identity"

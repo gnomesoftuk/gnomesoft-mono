@@ -28,18 +28,20 @@ module "tf_workspace" {
   working_dir                 = each.value.working_dir
   auto_apply                  = each.value.auto_apply
   force_delete_workspace      = var.force_delete_workspace
+  trigger_workspaces          = each.value.run_after
 }
 
 locals {
   workspaces = flatten([
     for workspace_name, workspace in var.workspaces : [
-      for account in workspace.accounts : {
-        name           = "${workspace_name}-${var.account_aliases[account]}"
-        alias          = "${workspace_name}"
-        vcs_repository = workspace.vcs_repository
-        auto_apply     = workspace.auto_apply
-        working_dir    = workspace.working_dir
-      }
+        for account in workspace.accounts : {
+          name           = "${workspace_name}-${var.account_aliases[account]}"
+          alias          = "${workspace_name}"
+          vcs_repository = workspace.vcs_repository
+          auto_apply     = workspace.auto_apply
+          working_dir    = workspace.working_dir
+          run_after      = [for ws in workspace.run_after: "${ws}-${var.account_aliases[account]}"]
+        } if workspace.disabled == false
     ]
   ])
 }
