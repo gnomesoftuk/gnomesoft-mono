@@ -13,7 +13,8 @@
                 "logs:*",
                 "ssm:*",
                 "ec2:*",
-				"elasticloadbalancing:**"
+				"elasticloadbalancing:*",
+				"application-autoscaling:*"
             ],
             "Resource": "*"
         }

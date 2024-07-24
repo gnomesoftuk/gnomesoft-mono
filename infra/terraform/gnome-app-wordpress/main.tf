@@ -13,7 +13,7 @@ provider "aws" {
 locals {
   name = basename(path.cwd)
 
-  http_port = 80
+  //http_port = 80
 
   container_name = "wordpress"
   container_port = 8080
@@ -86,15 +86,15 @@ data "aws_ecs_cluster" "deployment_cluster" {
   cluster_name = var.deployment_cluster_name
 }
 
-data "aws_lb" "cluster_service_lb" {
-  name = var.alb_name
-}
+# data "aws_lb" "cluster_service_lb" {
+#   name = var.alb_name
+# }
 
 # Find the listener we are attaching the service to
-data "aws_lb_listener" "http" {
-  load_balancer_arn = data.aws_lb.cluster_service_lb.arn
-  port              = local.http_port
-}
+# data "aws_lb_listener" "http" {
+#   load_balancer_arn = data.aws_lb.cluster_service_lb.arn
+#   port              = local.http_port
+# }
 
 # Find the security group attached to the load balancer
 # so we can grant ingress from it
@@ -154,9 +154,9 @@ module "ecs_service" {
     #   log_configuration = {
     #     logdriver = "awslogs"
     #     options = {
-    #       awslogs-group : local.name
-    #       awslogs-region : var.region
-    #       awslogs-stream-prefix : "sql-admin"
+    #      awslogs-group : "${local.name}/sqladmin"
+    #      awslogs-region : var.region
+    #      awslogs-stream-prefix : "ecs"
     #     }
     #   }
 
@@ -208,18 +208,19 @@ module "ecs_service" {
       # Example image used requires access to write to root filesystem
       readonly_root_filesystem = false
 
-    #   dependencies = [{
-    #     containerName = "sql-admin"
-    #     condition     = "START"
-    #   }]
+      #   dependencies = [{
+      #     containerName = "sql-admin"
+      #     condition     = "START"
+      #   }]
 
       enable_cloudwatch_logging = true
+      enable_cloudwatch_logging = false // let aws handle this
       log_configuration = {
         logdriver = "awslogs"
         options = {
-          awslogs-group : local.name
+          awslogs-group : "${local.name}/${local.container_name}"
           awslogs-region : var.region
-          awslogs-stream-prefix : local.container_name
+          awslogs-stream-prefix : "ecs"
         }
       }
 
@@ -257,23 +258,23 @@ module "ecs_service" {
   #   }
 
   subnet_ids = data.aws_subnets.private.ids
-  #   security_group_rules = {
-  #     alb_ingress = {
-  #       type                     = "ingress"
-  #       from_port                = local.container_port
-  #       to_port                  = local.container_port
-  #       protocol                 = "tcp"
-  #       description              = "Service port"
-  #       source_security_group_id = data.aws_security_group.load_balancer.id
-  #     }
-  #     egress_all = {
-  #       type        = "egress"
-  #       from_port   = 0
-  #       to_port     = 0
-  #       protocol    = "-1"
-  #       cidr_blocks = ["0.0.0.0/0"]
-  #     }
-  #   }
+  security_group_rules = {
+    alb_ingress = {
+      type                     = "ingress"
+      from_port                = local.container_port
+      to_port                  = local.container_port
+      protocol                 = "tcp"
+      description              = "Service port"
+      source_security_group_id = data.aws_security_group.load_balancer.id
+    }
+    egress_all = {
+      type        = "egress"
+      from_port   = 0
+      to_port     = 0
+      protocol    = "-1"
+      cidr_blocks = ["0.0.0.0/0"]
+    }
+  }
 }
 
 ################################################################################
@@ -291,13 +292,13 @@ resource "aws_security_group" "database" {
 }
 
 # // allow traffic IN from the ECS service on the database's port
-# resource "aws_vpc_security_group_ingress_rule" "db_from_application" {
-#   security_group_id            = aws_security_group.database.id
-#   from_port                    = local.db_port
-#   to_port                      = local.db_port
-#   ip_protocol                  = "tcp"
-#   referenced_security_group_id = module.ecs_service.security_group_id
-# }
+resource "aws_vpc_security_group_ingress_rule" "db_from_application" {
+  security_group_id            = aws_security_group.database.id
+  from_port                    = local.db_port
+  to_port                      = local.db_port
+  ip_protocol                  = "tcp"
+  referenced_security_group_id = module.ecs_service.security_group_id
+}
 
 # // allow traffic OUT to anywhere
 resource "aws_vpc_security_group_egress_rule" "db_to_anywhere" {
