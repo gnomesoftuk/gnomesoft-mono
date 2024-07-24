@@ -10,10 +10,16 @@
                 "rds:*",
                 "kms:*",
                 "ecs:Describe*",
+				"ecs:List*",
+				"ecs:*Task*",
+				"ecs:*Service*",
+				"ecs:TagResource",
+                "ecs:UntagResource",
                 "logs:*",
                 "ssm:*",
                 "ec2:*",
-                "ecs:List*"
+
+				"elasticloadbalancing:Describe*"
             ],
             "Resource": "*"
         }

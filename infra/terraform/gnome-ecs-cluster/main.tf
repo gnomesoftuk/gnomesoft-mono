@@ -119,4 +119,8 @@ module "alb" {
       }
     }
   }
+
+  tags = {
+    LB = var.alb_name
+  }
 }
