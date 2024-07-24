@@ -133,54 +133,56 @@ module "ecs_service" {
     #   user               = "0"
     # }
 
-    # sql-admin = {
+    sql-admin = {
 
-    #   container_name = local.container_name
-    #   cpu            = 512
-    #   memory         = 1024
-    #   essential      = true
-    #   image          = "joseluisq/alpine-mysql-client"
+      container_name = local.container_name
+      cpu            = 512
+      memory         = 1024
+      essential      = true
+      image          = "joseluisq/alpine-mysql-client"
 
-    #   environment = [
-    #     {
-    #       name  = "DB_PROTOCOL"
-    #       value = "tcp"
-    #     },
-    #     {
-    #       name  = "DB_HOST"
-    #       value = module.db.db_instance_address
-    #     },
-    #     {
-    #       name  = "DB_PORT"
-    #       value = local.db_port
-    #     },
-    #     {
-    #       name  = "DB_DEFAULT_CHARACTER_SET"
-    #       value = "utf8"
-    #     },
-    #   ]
+      environment = [
+        {
+          name  = "DB_PROTOCOL"
+          value = "tcp"
+        },
+        {
+          name  = "DB_HOST"
+          value = module.db.db_instance_address // hard-dependency
+        },
+        {
+          name  = "DB_PORT"
+          value = local.db_port
+        },
+        {
+          name  = "DB_DEFAULT_CHARACTER_SET"
+          value = "utf8"
+        },
+      ]
 
-    #   # Example image requires access to write to root filesystem
-    #   readonly_root_filesystem = false
+      # Example image requires access to write to root filesystem
+      readonly_root_filesystem = false
 
-    #   log_configuration = {
-    #     logdriver = "awslogs"
-    #     options = {
-    #       "awslogs-group" : "/ecs/db-setup"
-    #     }
-    #   }
+      log_configuration = {
+        logdriver = "awslogs"
+        options = {
+          awslogs-group : local.name
+          awslogs-region : var.region
+          awslogs-stream-prefix : "sql-admin"
+        }
+      }
 
-    #   linux_parameters = {
-    #     capabilities = {
-    #       add = []
-    #       drop = [
-    #         "NET_RAW"
-    #       ]
-    #     }
-    #     init_process_enabled = true
-    #   }
+      linux_parameters = {
+        capabilities = {
+          add = []
+          drop = [
+            "NET_RAW"
+          ]
+        }
+        init_process_enabled = true
+      }
 
-    # }
+    }
 
     (local.container_name) = {
       cpu       = 512
@@ -226,13 +228,11 @@ module "ecs_service" {
       enable_cloudwatch_logging = true
       log_configuration = {
         logdriver = "awslogs"
-        # logDriver = "awsfirelens"
-        # options = {
-        #   Name                    = "firehose"
-        #   region                  = local.region
-        #   delivery_stream         = "my-stream"
-        #   log-driver-buffer-limit = "2097152"
-        # }
+        options = {
+          awslogs-group : local.name
+          awslogs-region : var.region
+          awslogs-stream-prefix : local.container_name
+        }
       }
 
       linux_parameters = {
@@ -349,6 +349,10 @@ resource "aws_security_group" "database" {
   name        = "${local.name}-db-sg"
   description = "Access to the RDS instances from the VPC"
   vpc_id      = data.aws_vpc.workload.id
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 // allow traffic IN from the ECS service on the database's port
