@@ -44,9 +44,3 @@ variable "db_password" {
   description = "Unsafe password for database - will be replaced"
   sensitive   = true
 }
-// facilitate data sharing using lookups against resources with this tag
-variable "gnome_ecs_cluster_workspace" {
-  type        = string
-  description = "Logical name of the ECS cluster workspace (ie without prefix)"
-  default     = "gnome-ecs-cluster"
-}

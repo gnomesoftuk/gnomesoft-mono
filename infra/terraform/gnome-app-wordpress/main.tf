@@ -11,7 +11,7 @@ provider "aws" {
 }
 
 locals {
-  name = "ex-${basename(path.cwd)}"
+  name = basename(path.cwd)
 
   http_port = 80
 
@@ -98,12 +98,12 @@ data "aws_lb_listener" "http" {
 
 # Find the security group attached to the load balancer
 # so we can grant ingress from it
-# data "aws_security_group" "selected" {
-#   filter {
-#     name = "tag:xxx"
-#     value =
-#   }
-# }
+data "aws_security_group" "load_balancer" {
+  filter {
+    name   = "tag:LB"
+    values = [var.alb_name]
+  }
+}
 
 module "ecs_service" {
   source  = "terraform-aws-modules/ecs/aws//modules/service"
@@ -218,10 +218,10 @@ module "ecs_service" {
       # Example image used requires access to write to root filesystem
       readonly_root_filesystem = false
 
-      #   dependencies = [{
-      #     containerName = "fluent-bit"
-      #     condition     = "START"
-      #   }]
+      dependencies = [{
+        containerName = "sql-admin"
+        condition     = "START"
+      }]
 
       enable_cloudwatch_logging = true
       log_configuration = {
@@ -275,53 +275,23 @@ module "ecs_service" {
   }
 
   subnet_ids = data.aws_subnets.private.ids
-  # I don't know what this is yet
-  #   security_group_rules = {
-  #     alb_ingress = {
-  #       type                     = "ingress"
-  #       from_port                = local.container_port
-  #       to_port                  = local.container_port
-  #       protocol                 = "tcp"
-  #       description              = "Service port"
-  #       source_security_group_id = data.aws_
-  #     }
-  #     egress_all = {
-  #       type        = "egress"
-  #       from_port   = 0
-  #       to_port     = 0
-  #       protocol    = "-1"
-  #       cidr_blocks = ["0.0.0.0/0"]
-  #     }
-  #   }
-}
-
-resource "aws_security_group" "ecs_service" {
-  name        = "wordpress-service-sg"
-  description = "Security group for the ECS service"
-  vpc_id      = data.aws_vpc.workload.id
-}
-
-data "aws_security_group" "load_balancer" {
-  filter {
-    name   = "tag:Workspace"
-    values = [var.gnome_ecs_cluster_workspace]
+  security_group_rules = {
+    alb_ingress = {
+      type                     = "ingress"
+      from_port                = local.container_port
+      to_port                  = local.container_port
+      protocol                 = "tcp"
+      description              = "Service port"
+      source_security_group_id = data.aws_security_group.load_balancer.id
+    }
+    egress_all = {
+      type        = "egress"
+      from_port   = 0
+      to_port     = 0
+      protocol    = "-1"
+      cidr_blocks = ["0.0.0.0/0"]
+    }
   }
-}
-
-// allow traffic IN from the ALB on the container's port
-resource "aws_vpc_security_group_ingress_rule" "app_from_alb" {
-  security_group_id            = aws_security_group.ecs_service.id
-  from_port                    = local.container_port
-  to_port                      = local.container_port
-  ip_protocol                  = "tcp"
-  referenced_security_group_id = data.aws_security_group.load_balancer.id
-}
-
-// allow traffic OUT to anywhere
-resource "aws_vpc_security_group_egress_rule" "app_to_anywhere" {
-  security_group_id = aws_security_group.ecs_service.id
-  cidr_ipv4         = "0.0.0.0/0"
-  ip_protocol       = "-1"
 }
 
 ################################################################################
@@ -387,7 +357,7 @@ resource "aws_vpc_security_group_ingress_rule" "db_from_application" {
   from_port                    = local.db_port
   to_port                      = local.db_port
   ip_protocol                  = "tcp"
-  referenced_security_group_id = aws_security_group.ecs_service.id
+  referenced_security_group_id = module.ecs_service.security_group_id
 }
 
 // allow traffic OUT to anywhere
