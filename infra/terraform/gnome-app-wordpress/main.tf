@@ -346,7 +346,7 @@ module "ecs_service" {
 ################################################################################
 
 resource "aws_security_group" "database" {
-  name        = "wordpress-sg"
+  name        = "${local.name}-db-sg"
   description = "Access to the RDS instances from the VPC"
   vpc_id      = data.aws_vpc.workload.id
 }
