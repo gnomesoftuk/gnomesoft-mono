@@ -9,17 +9,11 @@
                 "secretsmanager:*",
                 "rds:*",
                 "kms:*",
-                "ecs:Describe*",
-				"ecs:List*",
-				"ecs:*Task*",
-				"ecs:*Service*",
-				"ecs:TagResource",
-                "ecs:UntagResource",
+				"ecs:*",
                 "logs:*",
                 "ssm:*",
                 "ec2:*",
-
-				"elasticloadbalancing:Describe*"
+				"elasticloadbalancing:**"
             ],
             "Resource": "*"
         }
