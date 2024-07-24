@@ -116,22 +116,10 @@ module "ecs_service" {
   memory = 4096
 
   # Enables ECS Exec
-  enable_execute_command = false
+  enable_execute_command = true
 
   # Container definition(s)
   container_definitions = {
-
-    # fluent-bit = {
-    #   cpu       = 512
-    #   memory    = 1024
-    #   essential = true
-    #   image     = nonsensitive(data.aws_ssm_parameter.fluentbit.value)
-    #   firelens_configuration = {
-    #     type = "fluentbit"
-    #   }
-    #   memory_reservation = 50
-    #   user               = "0"
-    # }
 
     sql-admin = {
 
@@ -244,12 +232,6 @@ module "ecs_service" {
         }
       }
 
-      # Not required for fluent-bit, just an example
-      #   volumes_from = [{
-      #     sourceContainer = "fluent-bit"
-      #     readOnly        = false
-      #   }]
-
       memory_reservation = 100
     }
   }
@@ -293,53 +275,6 @@ module "ecs_service" {
     }
   }
 }
-
-################################################################################
-# Bastion
-################################################################################
-
-# resource "aws_security_group" "bastion" {
-#   name        = "bastion-sg"
-#   description = "Access to the bastion host via SSH"
-#   vpc_id      = data.aws_vpc.workload.id
-# }
-
-# resource "aws_vpc_security_group_ingress_rule" "bastion_from_anywhere" {
-#   security_group_id = aws_security_group.bastion.id
-#   from_port         = 22
-#   to_port           = 22
-#   ip_protocol       = "tcp"
-#   cidr_ipv4         = "0.0.0.0/0"
-# }
-
-# resource "aws_vpc_security_group_egress_rule" "bastion_to_anywhere" {
-#   security_group_id = aws_security_group.bastion.id
-#   cidr_ipv4         = "0.0.0.0/0"
-#   ip_protocol       = "-1"
-# }
-
-# resource "tls_private_key" "pk" {
-#   algorithm = "RSA"
-#   rsa_bits  = 4096
-# }
-
-# resource "aws_key_pair" "bastion" {
-#   key_name   = "bastion"
-#   public_key = tls_private_key.pk.public_key_openssh
-# }
-
-# module "bastion" {
-#   source  = "terraform-aws-modules/ec2-instance/aws"
-#   version = "~> 5.6"
-
-#   name = "mysql-bastion"
-
-#   instance_type          = "t2.micro"
-#   key_name               = aws_key_pair.bastion.key_name
-#   monitoring             = false
-#   vpc_security_group_ids = [aws_security_group.bastion.id]
-#   subnet_id              = data.aws_subnets.public.ids[0]
-# }
 
 ################################################################################
 # Database
@@ -416,9 +351,6 @@ module "db" {
   # DB option group
   major_engine_version = "8.0"
 
-
-
-
   parameters = [
     {
       name  = "character_set_client"
@@ -429,21 +361,4 @@ module "db" {
       value = "utf8mb4"
     }
   ]
-
-  #   options = [
-  #     {
-  #       option_name = "MARIADB_AUDIT_PLUGIN"
-
-  #       option_settings = [
-  #         {
-  #           name  = "SERVER_AUDIT_EVENTS"
-  #           value = "CONNECT"
-  #         },
-  #         {
-  #           name  = "SERVER_AUDIT_FILE_ROTATIONS"
-  #           value = "37"
-  #         },
-  #       ]
-  #     },
-  #   ]
 }
