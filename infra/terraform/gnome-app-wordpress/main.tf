@@ -116,63 +116,74 @@ module "ecs_service" {
   memory = 4096
 
   # Enables ECS Exec
-  //enable_execute_command = true
+  enable_execute_command = true
 
   # Container definition(s)
   container_definitions = {
 
-    # sql-admin = {
+    # This container is designed for running commands against
+    # mysql - either an administrator or script. It does
+    # not do anything else, as such it has no open ports
+    sql-admin = {
 
-    #   container_name = local.container_name
-    #   cpu            = 512
-    #   memory         = 1024
-    #   essential      = true
-    #   image          = "joseluisq/alpine-mysql-client"
+      container_name = "sqladmin"
+      cpu            = 512
+      memory         = 1024
+      essential      = true
+      image          = "joseluisq/alpine-mysql-client"
+      command        = ["sh", "-c", "sleep infinity"] // keep running
 
-    #   environment = [
-    #     {
-    #       name  = "DB_PROTOCOL"
-    #       value = "tcp"
-    #     },
-    #     {
-    #       name  = "DB_HOST"
-    #       value = module.db.db_instance_address // hard-dependency
-    #     },
-    #     {
-    #       name  = "DB_PORT"
-    #       value = local.db_port
-    #     },
-    #     {
-    #       name  = "DB_DEFAULT_CHARACTER_SET"
-    #       value = "utf8"
-    #     },
-    #   ]
+      #   port_mappings = [
+      #     {
+      #       name          = local.container_name
+      #       containerPort = local.db_port
+      #       hostPort      = local.db_port
+      #       protocol      = "tcp"
+      #     }
+      #   ]
 
-    #   # Example image requires access to write to root filesystem
-    #   readonly_root_filesystem = false
-    #   enable_cloudwatch_logging = true
-    #   create_cloudwatch_log_group = true
-    #   cloudwatch_log_group_name = ""/aws/ecs/${local.name}/${local.container_name}"
-    #   log_configuration = {
-    #     logdriver = "awslogs"
-    #     options = {
-    #      awslogs-group : "/aws/ecs/${local.name}/sqladmin"
-    #      awslogs-region : var.region
-    #      awslogs-stream-prefix : "ecs"
-    #     }
-    #   }
+      environment = [
+        {
+          name  = "DB_PROTOCOL"
+          value = "tcp"
+        },
+        {
+          name  = "DB_HOST"
+          value = module.db.db_instance_address // hard-dependency
+        },
+        {
+          name  = "DB_PORT"
+          value = local.db_port
+        },
+        {
+          name  = "DB_DEFAULT_CHARACTER_SET"
+          value = "utf8"
+        },
+      ]
 
-    #   linux_parameters = {
-    #     capabilities = {
-    #       add = []
-    #       drop = [
-    #         "NET_RAW"
-    #       ]
-    #     }
-    #     init_process_enabled = true
-    #   }
 
-    # }
+      enable_cloudwatch_logging   = false
+      create_cloudwatch_log_group = false
+
+      #   log_configuration = {
+      #     logdriver = "awslogs"
+      #     options = {
+      #       awslogs-group : "/aws/ecs/${local.name}/sqladmin"
+      #       awslogs-region : var.region
+      #       awslogs-stream-prefix : "ecs"
+      #     }
+      #   }
+
+      linux_parameters = {
+        capabilities = {
+          add = []
+          drop = [
+            "NET_RAW"
+          ]
+        }
+        init_process_enabled = false // container uses dumb-init already
+      }
+    }
 
     (local.container_name) = {
       cpu       = 512
@@ -210,10 +221,10 @@ module "ecs_service" {
       # Example image used requires access to write to root filesystem
       readonly_root_filesystem = false
 
-      #   dependencies = [{
-      #     containerName = "sql-admin"
-      #     condition     = "START"
-      #   }]
+      dependencies = [{
+        containerName = "sql-admin"
+        condition     = "START"
+      }]
 
       enable_cloudwatch_logging   = true
       create_cloudwatch_log_group = true
