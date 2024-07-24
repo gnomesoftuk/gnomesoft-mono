@@ -150,11 +150,13 @@ module "ecs_service" {
 
     #   # Example image requires access to write to root filesystem
     #   readonly_root_filesystem = false
-
+    #   enable_cloudwatch_logging = true
+    #   create_cloudwatch_log_group = true
+    #   cloudwatch_log_group_name = ""/aws/ecs/${local.name}/${local.container_name}"
     #   log_configuration = {
     #     logdriver = "awslogs"
     #     options = {
-    #      awslogs-group : "${local.name}/sqladmin"
+    #      awslogs-group : "/aws/ecs/${local.name}/sqladmin"
     #      awslogs-region : var.region
     #      awslogs-stream-prefix : "ecs"
     #     }
@@ -213,12 +215,13 @@ module "ecs_service" {
       #     condition     = "START"
       #   }]
 
-      enable_cloudwatch_logging = true
-      enable_cloudwatch_logging = false // let aws handle this
+      enable_cloudwatch_logging   = true
+      create_cloudwatch_log_group = true
+      cloudwatch_log_group_name   = "/aws/ecs/${local.name}/${local.container_name}"
       log_configuration = {
         logdriver = "awslogs"
         options = {
-          awslogs-group : "${local.name}/${local.container_name}"
+          awslogs-group : "/aws/ecs/${local.name}/${local.container_name}"
           awslogs-region : var.region
           awslogs-stream-prefix : "ecs"
         }
