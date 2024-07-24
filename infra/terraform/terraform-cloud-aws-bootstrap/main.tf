@@ -1,5 +1,5 @@
 provider "aws" {
-  region  = "us-east-1"
+  region  = var.region
   profile = var.aws_profile
 }
 
@@ -36,7 +36,7 @@ locals {
     for workspace_name, workspace in var.workspaces : [
       for account in workspace.accounts : {
         name           = "${workspace_name}-${var.account_aliases[account]}"
-        alias          = "${workspace_name}"
+        alias          = workspace_name
         vcs_repository = workspace.vcs_repository
         auto_apply     = workspace.auto_apply
         working_dir    = workspace.working_dir

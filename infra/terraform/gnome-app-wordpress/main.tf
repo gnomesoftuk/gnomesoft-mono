@@ -11,8 +11,9 @@ provider "aws" {
 }
 
 locals {
-  region = var.region
-  name   = "ex-${basename(path.cwd)}"
+  name = "ex-${basename(path.cwd)}"
+
+  http_port = 80
 
   container_name = "wordpress"
   container_port = 8080
@@ -28,7 +29,7 @@ locals {
 data "aws_vpc" "workload" {
   filter {
     name   = "tag:Name"
-    values = ["${var.vpc_name}"]
+    values = [var.vpc_name]
   }
 }
 
@@ -40,17 +41,6 @@ data "aws_subnets" "private" {
   filter {
     name   = "tag:type"
     values = ["private"]
-  }
-}
-
-data "aws_subnets" "public" {
-  filter {
-    name   = "tag:Workspace"
-    values = ["gnome-workload-vpc"]
-  }
-  filter {
-    name   = "tag:type"
-    values = ["public"]
   }
 }
 
@@ -66,15 +56,7 @@ data "aws_subnets" "internal" {
 }
 
 ################################################################################
-# Cluster
-################################################################################
-
-data "aws_ecs_cluster" "ecs-mongo" {
-  cluster_name = var.deployment_cluster_name
-}
-
-################################################################################
-# ECS Service Automation
+# ECS Service Automation - not currently used
 ################################################################################
 
 
@@ -91,224 +73,227 @@ data "aws_ecs_cluster" "ecs-mongo" {
 
 ################################################################################
 # Service
-# 
-# deploying applications and utilities with terraform is problematic
-# because we really don't get that much control over the process.
-# In this case I want to deploy our service, and also a db setup task to
-# configure database creation - terraform does not allow us to deploy tasks in this way.
 #
-# Instead we should consider using CodeDeploy to deploy services to ECS rather than
-# trying to do it directly from Terraform.
+# Deploying applications and utilities with terraform is problematic
+# because we really don't get that much control over the process.
+#
+# As an improvement to this configuration we could use the CodeDeploy
+# configuration above to set up a deployment pipeline outside of
+# terraform.
 ################################################################################
 
-# module "ecs_admin_shell" {
-#   source  = "terraform-aws-modules/ecs/aws//modules/service"
-#   version = "~> 5.11"
+data "aws_ecs_cluster" "deployment_cluster" {
+  cluster_name = var.deployment_cluster_name
+}
 
-#   name        = "admin-shell"
-#   cluster_arn = module.ecs_cluster.arn
+data "aws_lb" "cluster_service_lb" {
+  name = var.alb_name
+}
 
-#   cpu    = 512
-#   memory = 1024
+# Find the listener we are attaching the service to
+data "aws_lb_listener" "http" {
+  load_balancer_arn = data.aws_lb.cluster_service_lb.arn
+  port              = local.http_port
+}
 
-#   enable_execute_command = true
-
-#   container_definitions = {
-
-#   }
-
-#   subnet_ids = data.aws_subnets.public.ids
-# }
-
-# // create a one-off ECS task for our database setup instructions
-# module "ecs_db_setup" {
-#   source  = "terraform-aws-modules/ecs/aws//modules/task"
-#   version = "~> 5.11"
-
-#   name        = "db-setup"
-#   cluster_arn = module.ecs_cluster.arn
-
-#   enable_execute_command = true
-
-#   cpu    = 512
-#   memory = 1024
-
-#   container_definitions = {
-#     container_name = local.container_name
-#     cpu            = 512
-#     memory         = 1024
-#     essential      = true
-#     image          = "public.ecr.aws/bitnami/wordpress:6.6.0"
-
-#     environment = [
-
-#     ]
-
-
-#     # Example image requires access to write to root filesystem
-#     readonly_root_filesystem = false
-
-#     log_configuration = {
-#       logdriver = "awslogs"
-#       options = {
-#         "awslogs-group" : "/ecs/db-setup"
-#       }
-#     }
-
-#     linux_parameters = {
-#       capabilities = {
-#         add = []
-#         drop = [
-#           "NET_RAW"
-#         ]
-#       }
-#       init_process_enabled = true
-#     }
-#   }
-
-#   subnet_ids = data.aws_subnets.private.ids
-# }
-
-# module "ecs_service" {
-#   source  = "terraform-aws-modules/ecs/aws//modules/service"
-#   version = "~> 5.11"
-
-#   name        = local.name
-#   cluster_arn = module.ecs_cluster.arn
-
-#   cpu    = 1024
-#   memory = 4096
-
-#   # Enables ECS Exec
-#   enable_execute_command = false
-
-#   # Container definition(s)
-#   container_definitions = {
-
-#     # fluent-bit = {
-#     #   cpu       = 512
-#     #   memory    = 1024
-#     #   essential = true
-#     #   image     = nonsensitive(data.aws_ssm_parameter.fluentbit.value)
-#     #   firelens_configuration = {
-#     #     type = "fluentbit"
-#     #   }
-#     #   memory_reservation = 50
-#     #   user               = "0"
-#     # }
-
-#     (local.container_name) = {
-#       cpu       = 512
-#       memory    = 1024
-#       essential = true
-#       image     = "public.ecr.aws/bitnami/wordpress:6.6.0"
-#       port_mappings = [
-#         {
-#           name          = local.container_name
-#           containerPort = local.container_port
-#           hostPort      = local.container_port
-#           protocol      = "tcp"
-#         }
-#       ]
-
-#       environment = [
-#         {
-#           name  = "WORDPRESS_DATABASE_HOST"
-#           value = module.db.db_instance_address
-#         },
-#         {
-#           name  = "WORDPRESS_DATABASE_USER"
-#           value = var.db_username
-#         },
-#         {
-#           name  = "WORDPRESS_DATABASE_PASSWORD"
-#           value = var.db_password
-#         },
-#         {
-#           name  = "WORDPRESS_DATABASE_NAME"
-#           value = local.db_name
-#         }
-#       ]
-
-#       # Example image used requires access to write to root filesystem
-#       readonly_root_filesystem = false
-
-#       #   dependencies = [{
-#       #     containerName = "fluent-bit"
-#       #     condition     = "START"
-#       #   }]
-
-#       enable_cloudwatch_logging = true
-#       log_configuration = {
-#         logdriver = "awslogs"
-#         # logDriver = "awsfirelens"
-#         # options = {
-#         #   Name                    = "firehose"
-#         #   region                  = local.region
-#         #   delivery_stream         = "my-stream"
-#         #   log-driver-buffer-limit = "2097152"
-#         # }
-#       }
-
-#       linux_parameters = {
-#         capabilities = {
-#           add = []
-#           drop = [
-#             "NET_RAW"
-#           ]
-#         }
-#       }
-
-#       # Not required for fluent-bit, just an example
-#       #   volumes_from = [{
-#       #     sourceContainer = "fluent-bit"
-#       #     readOnly        = false
-#       #   }]
-
-#       memory_reservation = 100
-#     }
-#   }
-
-#   service_connect_configuration = {
-#     namespace = aws_service_discovery_http_namespace.this.arn
-#     service = {
-#       client_alias = {
-#         port     = local.container_port
-#         dns_name = local.container_name
-#       }
-#       port_name      = local.container_name
-#       discovery_name = local.container_name
-#     }
-#   }
-
-#   load_balancer = {
-#     service = {
-#       target_group_arn = module.alb.target_groups["ex_ecs"].arn
-#       container_name   = local.container_name
-#       container_port   = local.container_port
-#     }
-#   }
-
-#   subnet_ids = data.aws_subnets.private.ids
-
-#   security_group_rules = {
-#     alb_ingress_3000 = {
-#       type                     = "ingress"
-#       from_port                = local.container_port
-#       to_port                  = local.container_port
-#       protocol                 = "tcp"
-#       description              = "Service port"
-#       source_security_group_id = module.alb.security_group_id
-#     }
-#     egress_all = {
-#       type        = "egress"
-#       from_port   = 0
-#       to_port     = 0
-#       protocol    = "-1"
-#       cidr_blocks = ["0.0.0.0/0"]
-#     }
+# Find the security group attached to the load balancer
+# so we can grant ingress from it
+# data "aws_security_group" "selected" {
+#   filter {
+#     name = "tag:xxx"
+#     value =
 #   }
 # }
+
+module "ecs_service" {
+  source  = "terraform-aws-modules/ecs/aws//modules/service"
+  version = "~> 5.11"
+
+  name        = local.name
+  cluster_arn = data.aws_ecs_cluster.deployment_cluster.arn
+
+  cpu    = 1024
+  memory = 4096
+
+  # Enables ECS Exec
+  enable_execute_command = false
+
+  # Container definition(s)
+  container_definitions = {
+
+    # fluent-bit = {
+    #   cpu       = 512
+    #   memory    = 1024
+    #   essential = true
+    #   image     = nonsensitive(data.aws_ssm_parameter.fluentbit.value)
+    #   firelens_configuration = {
+    #     type = "fluentbit"
+    #   }
+    #   memory_reservation = 50
+    #   user               = "0"
+    # }
+
+    # sql-admin = {
+
+    #   container_name = local.container_name
+    #   cpu            = 512
+    #   memory         = 1024
+    #   essential      = true
+    #   image          = "joseluisq/alpine-mysql-client"
+
+    #   environment = [
+    #     {
+    #       name  = "DB_PROTOCOL"
+    #       value = "tcp"
+    #     },
+    #     {
+    #       name  = "DB_HOST"
+    #       value = module.db.db_instance_address
+    #     },
+    #     {
+    #       name  = "DB_PORT"
+    #       value = local.db_port
+    #     },
+    #     {
+    #       name  = "DB_DEFAULT_CHARACTER_SET"
+    #       value = "utf8"
+    #     },
+    #   ]
+
+    #   # Example image requires access to write to root filesystem
+    #   readonly_root_filesystem = false
+
+    #   log_configuration = {
+    #     logdriver = "awslogs"
+    #     options = {
+    #       "awslogs-group" : "/ecs/db-setup"
+    #     }
+    #   }
+
+    #   linux_parameters = {
+    #     capabilities = {
+    #       add = []
+    #       drop = [
+    #         "NET_RAW"
+    #       ]
+    #     }
+    #     init_process_enabled = true
+    #   }
+
+    # }
+
+    (local.container_name) = {
+      cpu       = 512
+      memory    = 1024
+      essential = true
+      image     = "public.ecr.aws/bitnami/wordpress:6.6.0"
+      port_mappings = [
+        {
+          name          = local.container_name
+          containerPort = local.container_port
+          hostPort      = local.container_port
+          protocol      = "tcp"
+        }
+      ]
+
+      environment = [
+        {
+          name  = "WORDPRESS_DATABASE_HOST"
+          value = module.db.db_instance_address
+        },
+        {
+          name  = "WORDPRESS_DATABASE_USER"
+          value = var.db_username
+        },
+        {
+          name  = "WORDPRESS_DATABASE_PASSWORD"
+          value = var.db_password
+        },
+        {
+          name  = "WORDPRESS_DATABASE_NAME"
+          value = local.db_name
+        }
+      ]
+
+      # Example image used requires access to write to root filesystem
+      readonly_root_filesystem = false
+
+      #   dependencies = [{
+      #     containerName = "fluent-bit"
+      #     condition     = "START"
+      #   }]
+
+      enable_cloudwatch_logging = true
+      log_configuration = {
+        logdriver = "awslogs"
+        # logDriver = "awsfirelens"
+        # options = {
+        #   Name                    = "firehose"
+        #   region                  = local.region
+        #   delivery_stream         = "my-stream"
+        #   log-driver-buffer-limit = "2097152"
+        # }
+      }
+
+      linux_parameters = {
+        capabilities = {
+          add = []
+          drop = [
+            "NET_RAW"
+          ]
+        }
+      }
+
+      # Not required for fluent-bit, just an example
+      #   volumes_from = [{
+      #     sourceContainer = "fluent-bit"
+      #     readOnly        = false
+      #   }]
+
+      memory_reservation = 100
+    }
+  }
+
+  #   service_connect_configuration = {
+  #     namespace = aws_service_discovery_http_namespace.this.arn
+  #     service = {
+  #       client_alias = {
+  #         port     = local.container_port
+  #         dns_name = local.container_name
+  #       }
+  #       port_name      = local.container_name
+  #       discovery_name = local.container_name
+  #     }
+  #   }
+
+  load_balancer = {
+    service = {
+      target_group_arn = data.aws_lb_listener.http.arn
+      container_name   = local.container_name
+      container_port   = local.container_port
+    }
+  }
+
+  subnet_ids = data.aws_subnets.private.ids
+  # I don't know what this is yet
+  #   security_group_rules = {
+  #     alb_ingress = {
+  #       type                     = "ingress"
+  #       from_port                = local.container_port
+  #       to_port                  = local.container_port
+  #       protocol                 = "tcp"
+  #       description              = "Service port"
+  #       source_security_group_id = data.aws_
+  #     }
+  #     egress_all = {
+  #       type        = "egress"
+  #       from_port   = 0
+  #       to_port     = 0
+  #       protocol    = "-1"
+  #       cidr_blocks = ["0.0.0.0/0"]
+  #     }
+  #   }
+}
 
 resource "aws_security_group" "ecs_service" {
   name        = "wordpress-service-sg"
@@ -413,7 +398,8 @@ resource "aws_vpc_security_group_egress_rule" "db_to_anywhere" {
 }
 
 module "db" {
-  source = "terraform-aws-modules/rds/aws"
+  source  = "terraform-aws-modules/rds/aws"
+  version = "~> 6.8"
 
   identifier = "wordpress"
 

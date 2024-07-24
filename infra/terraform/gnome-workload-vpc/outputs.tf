@@ -3,8 +3,8 @@
 ################################################################################
 
 output "vpc_id" {
-    description = "The unique AWS ID for the VPC"
-    value = module.vpc.vpc_id
+  description = "The unique AWS ID for the VPC"
+  value       = module.vpc.vpc_id
 }
 
 output "vpc_cidr_block" {
@@ -13,11 +13,11 @@ output "vpc_cidr_block" {
 }
 
 output "public_subnet_ids" {
-    description = "A list of public subnet IDs in the VPC"
-    value = module.vpc.public_subnets
+  description = "A list of public subnet IDs in the VPC"
+  value       = module.vpc.public_subnets
 }
 
 output "private_subnet_ids" {
-    description = "A list of private subnet IDs in the VPC"
-    value = module.vpc.private_subnets
+  description = "A list of private subnet IDs in the VPC"
+  value       = module.vpc.private_subnets
 }

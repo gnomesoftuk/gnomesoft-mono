@@ -11,8 +11,8 @@ provider "aws" {
 }
 
 locals {
-  region = var.region
-  name   = "${basename(path.cwd)}"
+  name      = basename(path.cwd)
+  http_port = 80
 }
 
 ################################################################################
@@ -22,21 +22,9 @@ locals {
 data "aws_vpc" "workload" {
   filter {
     name   = "tag:Name"
-    values = ["${var.vpc_name}"]
+    values = [var.vpc_name]
   }
   state = "available"
-}
-
-data "aws_subnets" "private" {
-  filter {
-    name   = "vpc-id"
-    values = [data.aws_vpc.workload.id]
-  }
-  filter {
-    name   = "tag:type"
-    values = ["private"]
-  }
-  
 }
 
 data "aws_subnets" "public" {
@@ -47,17 +35,6 @@ data "aws_subnets" "public" {
   filter {
     name   = "tag:type"
     values = ["public"]
-  }
-}
-
-data "aws_subnets" "internal" {
-  filter {
-    name   = "vpc-id"
-    values = [data.aws_vpc.workload.id]
-  }
-  filter {
-    name   = "tag:type"
-    values = ["internal"]
   }
 }
 
@@ -111,8 +88,8 @@ module "alb" {
   # Security Group
   security_group_ingress_rules = {
     all_http = {
-      from_port   = 80
-      to_port     = 80
+      from_port   = local.http_port
+      to_port     = local.http_port
       ip_protocol = "tcp"
       cidr_ipv4   = "0.0.0.0/0"
     }
@@ -128,7 +105,7 @@ module "alb" {
   // set up for TLS
   listeners = {
     http = {
-      port     = 80
+      port     = local.http_port
       protocol = "HTTP"
 
       # forward = {

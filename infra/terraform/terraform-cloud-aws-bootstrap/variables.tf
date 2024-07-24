@@ -1,9 +1,19 @@
+variable "region" {
+  type        = string
+  description = "The AWS Region"
+  default     = "us-east-1"
+}
+
 variable "organization" {
-  default = "Gnomesoft"
+  type        = string
+  description = "The HCP terraform organisation"
+  default     = "Gnomesoft"
 }
 
 variable "project" {
-  default = "demo-project"
+  type        = string
+  description = "The HCP terraform project"
+  default     = "demo-project"
 }
 
 variable "aws_profile" {
