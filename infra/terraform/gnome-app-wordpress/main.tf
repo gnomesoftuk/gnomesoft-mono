@@ -116,61 +116,61 @@ module "ecs_service" {
   memory = 4096
 
   # Enables ECS Exec
-  enable_execute_command = true
+  //enable_execute_command = true
 
   # Container definition(s)
   container_definitions = {
 
-    sql-admin = {
+    # sql-admin = {
 
-      container_name = local.container_name
-      cpu            = 512
-      memory         = 1024
-      essential      = true
-      image          = "joseluisq/alpine-mysql-client"
+    #   container_name = local.container_name
+    #   cpu            = 512
+    #   memory         = 1024
+    #   essential      = true
+    #   image          = "joseluisq/alpine-mysql-client"
 
-      environment = [
-        {
-          name  = "DB_PROTOCOL"
-          value = "tcp"
-        },
-        {
-          name  = "DB_HOST"
-          value = module.db.db_instance_address // hard-dependency
-        },
-        {
-          name  = "DB_PORT"
-          value = local.db_port
-        },
-        {
-          name  = "DB_DEFAULT_CHARACTER_SET"
-          value = "utf8"
-        },
-      ]
+    #   environment = [
+    #     {
+    #       name  = "DB_PROTOCOL"
+    #       value = "tcp"
+    #     },
+    #     {
+    #       name  = "DB_HOST"
+    #       value = module.db.db_instance_address // hard-dependency
+    #     },
+    #     {
+    #       name  = "DB_PORT"
+    #       value = local.db_port
+    #     },
+    #     {
+    #       name  = "DB_DEFAULT_CHARACTER_SET"
+    #       value = "utf8"
+    #     },
+    #   ]
 
-      # Example image requires access to write to root filesystem
-      readonly_root_filesystem = false
+    #   # Example image requires access to write to root filesystem
+    #   readonly_root_filesystem = false
 
-      log_configuration = {
-        logdriver = "awslogs"
-        options = {
-          awslogs-group : local.name
-          awslogs-region : var.region
-          awslogs-stream-prefix : "sql-admin"
-        }
-      }
+    #   log_configuration = {
+    #     logdriver = "awslogs"
+    #     options = {
+    #       awslogs-group : local.name
+    #       awslogs-region : var.region
+    #       awslogs-stream-prefix : "sql-admin"
+    #     }
+    #   }
 
-      linux_parameters = {
-        capabilities = {
-          add = []
-          drop = [
-            "NET_RAW"
-          ]
-        }
-        init_process_enabled = true
-      }
+    #   linux_parameters = {
+    #     capabilities = {
+    #       add = []
+    #       drop = [
+    #         "NET_RAW"
+    #       ]
+    #     }
+    #     init_process_enabled = true
+    #   }
 
-    }
+    # }
 
     (local.container_name) = {
       cpu       = 512
@@ -208,10 +208,10 @@ module "ecs_service" {
       # Example image used requires access to write to root filesystem
       readonly_root_filesystem = false
 
-      dependencies = [{
-        containerName = "sql-admin"
-        condition     = "START"
-      }]
+    #   dependencies = [{
+    #     containerName = "sql-admin"
+    #     condition     = "START"
+    #   }]
 
       enable_cloudwatch_logging = true
       log_configuration = {
@@ -248,32 +248,32 @@ module "ecs_service" {
   #     }
   #   }
 
-  load_balancer = {
-    service = {
-      target_group_arn = data.aws_lb_listener.http.arn
-      container_name   = local.container_name
-      container_port   = local.container_port
-    }
-  }
+  #   load_balancer = {
+  #     service = {
+  #       target_group_arn = data.aws_lb_listener.http.arn
+  #       container_name   = local.container_name
+  #       container_port   = local.container_port
+  #     }
+  #   }
 
   subnet_ids = data.aws_subnets.private.ids
-  security_group_rules = {
-    alb_ingress = {
-      type                     = "ingress"
-      from_port                = local.container_port
-      to_port                  = local.container_port
-      protocol                 = "tcp"
-      description              = "Service port"
-      source_security_group_id = data.aws_security_group.load_balancer.id
-    }
-    egress_all = {
-      type        = "egress"
-      from_port   = 0
-      to_port     = 0
-      protocol    = "-1"
-      cidr_blocks = ["0.0.0.0/0"]
-    }
-  }
+  #   security_group_rules = {
+  #     alb_ingress = {
+  #       type                     = "ingress"
+  #       from_port                = local.container_port
+  #       to_port                  = local.container_port
+  #       protocol                 = "tcp"
+  #       description              = "Service port"
+  #       source_security_group_id = data.aws_security_group.load_balancer.id
+  #     }
+  #     egress_all = {
+  #       type        = "egress"
+  #       from_port   = 0
+  #       to_port     = 0
+  #       protocol    = "-1"
+  #       cidr_blocks = ["0.0.0.0/0"]
+  #     }
+  #   }
 }
 
 ################################################################################
@@ -290,16 +290,16 @@ resource "aws_security_group" "database" {
   }
 }
 
-// allow traffic IN from the ECS service on the database's port
-resource "aws_vpc_security_group_ingress_rule" "db_from_application" {
-  security_group_id            = aws_security_group.database.id
-  from_port                    = local.db_port
-  to_port                      = local.db_port
-  ip_protocol                  = "tcp"
-  referenced_security_group_id = module.ecs_service.security_group_id
-}
+# // allow traffic IN from the ECS service on the database's port
+# resource "aws_vpc_security_group_ingress_rule" "db_from_application" {
+#   security_group_id            = aws_security_group.database.id
+#   from_port                    = local.db_port
+#   to_port                      = local.db_port
+#   ip_protocol                  = "tcp"
+#   referenced_security_group_id = module.ecs_service.security_group_id
+# }
 
-// allow traffic OUT to anywhere
+# // allow traffic OUT to anywhere
 resource "aws_vpc_security_group_egress_rule" "db_to_anywhere" {
   security_group_id = aws_security_group.database.id
   cidr_ipv4         = "0.0.0.0/0"
