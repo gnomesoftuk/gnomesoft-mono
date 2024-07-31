@@ -139,6 +139,9 @@ RUN uname -m && \
 # Node version manager / NodeJs (https://nodejs.org/en/download/package-manager/)
 	curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash && \
 	nvm install ${NODEJS_VERSION}										&& \
+	export NVM_DIR="$HOME/.nvm"											&& \
+	[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"					&& \
+	[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"	&& \
 # terraform-docs (https://github.com/terraform-docs/terraform-docs)
 	curl -fsSL ${CURL_RETRIES} "$TFDOC_URL" -o "terraform-docs.tar.gz"  && \
 	tar -xf "terraform-docs.tar.gz" "terraform-docs"    && \
@@ -226,6 +229,7 @@ USER $USERNAME
 RUN pipx install ansible-dev-tools \
 	ansible-core \
 	ansible-lint && \
+	pre-commit && \
 	pip3 cache purge            && \
 	# smoke test pip installed tools
 	ansible --version          && \
@@ -233,4 +237,3 @@ RUN pipx install ansible-dev-tools \
 	ansible-lint --version && \
 	# go debugger
 	go install github.com/go-delve/delve/cmd/dlv@latest
-
